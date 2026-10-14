@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Calendar, MapPin, Users, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
+import { formatPrice } from "@/lib/format";
 
 type EventDetail = {
   id: number;
@@ -77,7 +78,6 @@ function EventDetailContent() {
       minute: "2-digit",
     });
 
-  const formatPrice = (cents: number) => (cents === 0 ? "Free" : `$${(cents / 100).toFixed(2)}`);
 
   if (loading || !event) {
     return (

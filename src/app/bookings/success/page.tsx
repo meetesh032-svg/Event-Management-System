@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CheckCircle, Download, Loader2, Mail } from "lucide-react";
+import { formatPrice } from "@/lib/format";
 
 type BookingDetail = {
   id: number;
@@ -76,7 +77,7 @@ function SuccessContent() {
             <p className="text-xs text-slate-400">Booking reference</p>
             <p className="mt-1 font-mono text-lg font-semibold text-indigo-300">{booking.reference}</p>
             <p className="mt-4 text-xs text-slate-400">Total paid</p>
-            <p className="mt-1 font-semibold">${(booking.totalCents / 100).toFixed(2)}</p>
+            <p className="mt-1 font-semibold">{formatPrice(booking.totalCents)}</p>
           </div>
 
           <div className="mt-8 flex flex-col gap-3">

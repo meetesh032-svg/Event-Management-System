@@ -33,6 +33,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
 
     const qrBuffer = await generateQRCodeBuffer(row.booking.reference);
+    const pdfPrice = row.event.ticketPriceCents === 0 ? "Free" : `Rs. ${(row.event.ticketPriceCents / 100).toLocaleString("en-IN")}`;
     const pdfBuffer = await generateTicketPDF({
       eventTitle: row.event.title,
       eventDescription: row.event.description,
@@ -43,6 +44,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       reference: row.booking.reference,
       quantity: row.booking.quantity,
       qrBuffer,
+      price: pdfPrice,
     });
 
     return new Response(new Uint8Array(pdfBuffer), {

@@ -64,6 +64,9 @@ export async function createBookingFromSession(session: Stripe.Checkout.Session)
     // Generate QR + PDF + email outside the tx so DB commit is not blocked,
     // but keep this in the helper for a single call site.
     const qrBuffer = await generateQRCodeBuffer(reference);
+    const pdfPrice = event.ticketPriceCents === 0 ? "Free" : `Rs. ${(event.ticketPriceCents / 100).toLocaleString("en-IN")}`;
+    const formattedRupees = event.ticketPriceCents === 0 ? "Free" : `₹${((event.ticketPriceCents * quantity) / 100).toLocaleString("en-IN")}`;
+
     const pdfBuffer = await generateTicketPDF({
       eventTitle: event.title,
       eventDescription: event.description,
@@ -74,6 +77,7 @@ export async function createBookingFromSession(session: Stripe.Checkout.Session)
       reference,
       quantity,
       qrBuffer,
+      price: pdfPrice,
     });
 
     await sendTicketEmail({
@@ -84,7 +88,7 @@ export async function createBookingFromSession(session: Stripe.Checkout.Session)
         <p>Your booking reference is <strong>${reference}</strong>.</p>
         <p>Event: ${event.title}<br/>Location: ${event.location}<br/>Date: ${new Date(
         event.startsAt
-      ).toLocaleString()}</p>
+      ).toLocaleString()}<br/>Amount: <strong>${formattedRupees}</strong></p>
         <p>Your e-ticket is attached. Have a great time!</p>
       `,
       pdfBuffer,

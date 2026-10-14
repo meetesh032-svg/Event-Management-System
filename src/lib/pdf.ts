@@ -10,6 +10,7 @@ export type TicketPdfData = {
   reference: string;
   quantity: number;
   qrBuffer: Buffer;
+  price?: string;
 };
 
 export function generateTicketPDF(data: TicketPdfData): Promise<Buffer> {
@@ -44,6 +45,10 @@ export function generateTicketPDF(data: TicketPdfData): Promise<Buffer> {
     doc.text(`Date: ${data.eventDate}`);
     doc.moveDown(0.3);
     doc.text(`Quantity: ${data.quantity}`);
+    if (data.price) {
+      doc.moveDown(0.3);
+      doc.text(`Price: ${data.price}`);
+    }
 
     // Attendee block
     doc.moveDown(2);

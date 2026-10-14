@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gatherly - Project Presentation (4 Members, 4 Slides Each)</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #0f172a;
+      --card-bg: #ffffff;
+      --card-border: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #090d16;
+      color: #f8fafc;
+      padding: 24px;
+    }
+
+    .top-toolbar {
+      position: sticky;
+      top: 10px;
+      z-index: 100;
+      max-width: 1200px;
+      margin: 0 auto 24px auto;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1px solid #334155;
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .btn-secondary {
+      background: #334155;
+      margin-left: 8px;
+    }
+    .btn-secondary:hover { background: #475569; }
+
+    .slides-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+
+    .slide {
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      min-height: 600px;
+      position: relative;
+    }
+
+    .slide-header {
+      background: #f8fafc;
+      border-bottom: 2px solid #e2e8f0;
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .role-1 { background: #dbeafe; color: #1e40af; }
+    .role-2 { background: #fce7f3; color: #9d174d; }
+    .role-3 { background: #dcfce7; color: #166534; }
+    .role-4 { background: #fef3c7; color: #92400e; }
+    .role-all { background: #e2e8f0; color: #0f172a; }
+
+    .slide-number {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    .slide-title-area {
+      padding: 18px 28px 10px 28px;
+    }
+    .slide-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .slide-body {
+      padding: 14px 28px 28px 28px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .card-header-1 { background: #eff6ff; color: #1e40af; }
+    .card-header-2 { background: #fdf2f8; color: #9d174d; }
+    .card-header-3 { background: #f0fdf4; color: #166534; }
+    .card-header-4 { background: #fffbeb; color: #92400e; }
+
+    .card-content {
+      padding: 20px;
+      font-size: 14.5px;
+      line-height: 1.55;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .point {
+      display: flex;
+      gap: 10px;
+    }
+    .bullet {
+      color: #2563eb;
+      font-weight: bold;
+    }
+    .point strong {
+      color: #1e293b;
+      min-width: 130px;
+      display: inline-block;
+    }
+
+    .slide-footer {
+      background: #f1f5f9;
+      border-top: 1px solid #e2e8f0;
+      padding: 10px 28px;
+      font-size: 12.5px;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Print Styles for PDF export */
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+      }
+      .top-toolbar { display: none; }
+      .slides-container { gap: 0; }
+      .slide {
+        page-break-after: always;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        height: 100vh;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-toolbar">
+    <div>
+      <h2 style="font-size: 16px; font-weight: 800; color: #ffffff;">Gatherly - Project Presentation (4 Members)</h2>
+      <p style="font-size: 12px; color: #94a3b8;">4 Team Members • 4 Slides Per Member • 18 Slides Total</p>
+    </div>
+    <div>
+      <button class="btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+      <a href="Gatherly_Project_Presentation.pdf" download class="btn btn-secondary" style="text-decoration:none;">📄 Download PDF</a>
+    </div>
+  </div>
+
+  <div class="slides-container">
+
+    <!-- SLIDE 1: Title (4 Members) -->
+    <div class="slide" style="background: #0f172a; color: #ffffff; justify-content: center; padding: 40px;">
+      <div style="max-width: 900px; margin: 0 auto; text-align: center;">
+        <span class="role-badge" style="background: #1e293b; color: #38bdf8; font-size: 14px; margin-bottom: 16px;">
+          ACADEMIC MINI PROJECT PRESENTATION
+        </span>
+        <h1 style="font-size: 38px; font-weight: 900; margin: 12px 0 8px 0; color: #ffffff;">
+          GATHERLY : EVENT & TICKET MANAGEMENT PLATFORM
+        </h1>
+        <p style="font-size: 16px; color: #94a3b8; margin-bottom: 30px;">
+          A Modern Full-Stack Event Discovery, Booking & Automated Ticketing Platform Built with Next.js 16, PostgreSQL & Stripe
+        </p>
+
+        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 22px; text-align: left;">
+          <h3 style="font-size: 14px; color: #38bdf8; margin-bottom: 14px; text-transform: uppercase;">
+            Team Members & Modular Role Distribution (4 Slides Each):
+          </h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 14px;">
+            <div style="padding: 12px; background: #0f172a; border-radius: 8px; border-left: 4px solid #3b82f6;">
+              <strong style="color: #60a5fa;">Member 1:</strong> Full-Stack Architect & Backend Lead<br>
+              <span style="font-size: 12.5px; color: #cbd5e1;">Next.js 16 App Router, JWT Authentication, REST APIs, Security Guards</span>
+            </div>
+            <div style="padding: 12px; background: #0f172a; border-radius: 8px; border-left: 4px solid #ec4899;">
+              <strong style="color: #f472b6;">Member 2:</strong> Frontend Lead & UI/UX Developer<br>
+              <span style="font-size: 12.5px; color: #cbd5e1;">React 19, Tailwind CSS v4, Multi-Category Discovery, Organizer Dashboard</span>
+            </div>
+            <div style="padding: 12px; background: #0f172a; border-radius: 8px; border-left: 4px solid #10b981;">
+              <strong style="color: #34d399;">Member 3:</strong> Database & ORM Engineer<br>
+              <span style="font-size: 12.5px; color: #cbd5e1;">PostgreSQL Relational Schema, Drizzle ORM, Concurrency & Inventory, Seeding</span>
+            </div>
+            <div style="padding: 12px; background: #0f172a; border-radius: 8px; border-left: 4px solid #f59e0b;">
+              <strong style="color: #fbbf24;">Member 4:</strong> Payment, Ticketing & DevOps Engineer<br>
+              <span style="font-size: 12.5px; color: #cbd5e1;">Stripe Checkout, PDFKit E-Tickets, QR Codes, Postman & Vercel Deployment</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMBER 1: SLIDE 1 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-1">MEMBER 1: FULL-STACK ARCHITECT & BACKEND LEAD</span>
+        <span class="slide-number">Slide 1 of 4 for Member 1 (Overall Slide 2)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">System Architecture & Tech Stack</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-1">Full-Stack Architecture Overview</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Next.js 16:</strong> Modern App Router architecture with React 19 in a unified codebase.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Server/Client Split:</strong> Server components for data fetching; client components for interactive forms.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Colocated APIs:</strong> Backend REST endpoints built under <code>src/app/api/</code>, eliminating CORS issues.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Turbopack:</strong> Fast bundling engine ensuring instant hot-reloads and optimized bundles.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-1">Directory Layout & Request Pipeline</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Request Pipeline:</strong> Browser Request &rarr; Route Handler &rarr; Auth Guard &rarr; Drizzle ORM &rarr; PostgreSQL.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Clean Structure:</strong> Distinct modules for <code>src/app/</code> (routes), <code>src/db/</code> (models), and <code>src/lib/</code> (helpers).</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>State Sync:</strong> Zustand client store synchronizes user authentication state via <code>/api/auth/me</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Edge Ready:</strong> Scalable serverless functions with zero cold-start bottleneck.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 2 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 1: SLIDE 2 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-1">MEMBER 1: FULL-STACK ARCHITECT & BACKEND LEAD</span>
+        <span class="slide-number">Slide 2 of 4 for Member 1 (Overall Slide 3)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Authentication & Role-Based Access Control (RBAC)</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-1">User Authentication Pipeline</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>RBAC System:</strong> Strict role separation between <code>attendee</code> (ticket buyer) and <code>organizer</code> (event host).</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Password Hashing:</strong> Passwords encrypted using <code>bcryptjs</code> with 10 salt rounds before DB insert.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Stateless JWT:</strong> Cryptographically signed tokens containing user ID, email, and verified role.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Secret Protection:</strong> Private <code>JWT_SECRET</code> securely loaded from environment variables.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-1">Session & Cookie Security Strategy</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>httpOnly Storage:</strong> JWT tokens stored in httpOnly cookies, preventing XSS token theft.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>SameSite: Lax:</strong> Protects against unauthorized Cross-Site Request Forgery (CSRF).</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Session Lifetime:</strong> 7-day rolling validity; logout immediately clears the cookie header.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Auth Helper:</strong> <code>src/lib/auth.ts</code> decodes and verifies session tokens on protected routes.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 3 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 1: SLIDE 3 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-1">MEMBER 1: FULL-STACK ARCHITECT & BACKEND LEAD</span>
+        <span class="slide-number">Slide 3 of 4 for Member 1 (Overall Slide 4)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">API Route Design & Server-Side Security</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-1">RESTful Endpoint Structure</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Auth APIs:</strong> <code>/api/auth/register</code>, <code>/api/auth/login</code>, <code>/api/auth/logout</code>, and <code>/api/auth/me</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Catalog APIs:</strong> <code>GET /api/events</code> for search/filters; <code>POST /api/events</code> to publish shows.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Management APIs:</strong> <code>GET / PUT / DELETE /api/events/[id]</code> for event administration.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Ticketing APIs:</strong> <code>/api/bookings</code> for attendee history and <code>/api/checkout</code> for Stripe sessions.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-1">Route Authorization & Error Handling</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Ownership Check:</strong> Verifies <code>event.organizerId === user.id</code> before modifying event listings.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Role Guards:</strong> Attendees attempting organizer operations receive HTTP 403 Forbidden.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>HTTP Standards:</strong> Consistent status codes: 400 Bad Request, 401 Unauthorized, 404 Not Found.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Input Validation:</strong> Rejects past event dates and non-positive ticket prices.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 4 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 1: SLIDE 4 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-1">MEMBER 1: FULL-STACK ARCHITECT & BACKEND LEAD</span>
+        <span class="slide-number">Slide 4 of 4 for Member 1 (Overall Slide 5)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Challenges Overcome & Key Deliverables</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-1">Technical Challenges Solved</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>State Hydration:</strong> Synchronizing client Zustand store with server httpOnly session cookies.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Solution:</strong> Built <code>/api/auth/me</code> route to bootstrap user session on application layout mount.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Cookie Headers:</strong> Handling asynchronous cookie mutation headers in Next.js 16 route handlers.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Solution:</strong> Leveraged Next.js <code>cookies()</code> API to serialize Set-Cookie headers properly.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-1">Key Architectural Deliverables</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Modular Architecture:</strong> Decoupled route handlers with reusable auth and database utilities.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Defense in Depth:</strong> Form validations verified on frontend and strictly enforced on server.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Stateless Scalability:</strong> JWT architecture avoids bulky session tables in the database.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Contract Standards:</strong> Standardized JSON envelopes (<code>{ success, data, error }</code>) across all APIs.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 5 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 2: SLIDE 1 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-2">MEMBER 2: FRONTEND LEAD & UI/UX DEVELOPER</span>
+        <span class="slide-number">Slide 1 of 4 for Member 2 (Overall Slide 6)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Design System & User Interface Architecture</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-2">UI Design System & Aesthetics</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Theme:</strong> Modern cinema & live-event ticketing aesthetic inspired by BookMyShow.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Color Tokens:</strong> Slate dark canvas (<code>#0F172A</code>), card surfaces (<code>#1E293B</code>), indigo accents (<code>#6366F1</code>).</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Typography:</strong> Crisp Inter font hierarchy with high contrast and readable letter spacing.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Icons:</strong> Scalable vector icons from <code>lucide-react</code> for visual clarity and navigation.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-2">Tailwind CSS v4 & Component Tree</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Tailwind CSS v4:</strong> Zero-runtime utility classes for responsive, high-performance styling.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Reusable Components:</strong> <code>Navbar</code>, <code>EventCard</code>, <code>CategoryFilter</code>, <code>HeroBanner</code>, <code>CapacityBar</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Mobile Layout:</strong> CSS grid layout adapting from 4-columns on desktop to 1-column on mobile.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Micro-Interactions:</strong> Subtle hover card lifts, active pill highlights, and toast animations.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 6 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 2: SLIDE 2 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-2">MEMBER 2: FRONTEND LEAD & UI/UX DEVELOPER</span>
+        <span class="slide-number">Slide 2 of 4 for Member 2 (Overall Slide 7)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Multi-Category Discovery & Real-Time Filtering</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-2">6-Category Event Discovery</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>6 Categories:</strong> Movies, Stream, Events, Plays, Sports, and Activities.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Visual Tabs:</strong> Interactive category carousel with animated active indicators.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Rich Event Cards:</strong> Displays poster image, title, category tag, date badge, venue, and price.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Empty States:</strong> Friendly empty state graphics when no shows match the filter criteria.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-2">Search Mechanics & URL Sync</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Live Search:</strong> Client-side debounced search bar matching event title, location, and keywords.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Date Filter:</strong> Calendar filter allowing attendees to find upcoming shows by date.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>URL Sync:</strong> Encodes queries into URL (<code>?category=sports&q=...</code>) for shareability.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Framer Motion:</strong> Animates layout transitions smoothly as filter results update.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 7 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 2: SLIDE 3 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-2">MEMBER 2: FRONTEND LEAD & UI/UX DEVELOPER</span>
+        <span class="slide-number">Slide 3 of 4 for Member 2 (Overall Slide 8)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Organizer Dashboard & Attendee Ticket Portals</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-2">Organizer Dashboard Interface</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Live Metrics:</strong> Stat counters for Total Events, Tickets Sold, and Total Revenue.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Capacity Bar:</strong> Dynamic progress bar showing tickets remaining vs total capacity.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>List Your Show:</strong> Modal dialog form for creating new event listings with validation.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Show Controls:</strong> Action triggers to edit details or delete listings.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-2">Attendee "My Tickets" Portal</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Booking History:</strong> Chronological cards of all booked tickets with unique references.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Pass Downloads:</strong> Direct button to download official PDF event pass.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Gate QR Modal:</strong> Popup modal showing high-res scannable QR pass for entrance check-in.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Role Gating:</strong> Automatically hides organizer links from normal attendees.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 8 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 2: SLIDE 4 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-2">MEMBER 2: FRONTEND LEAD & UI/UX DEVELOPER</span>
+        <span class="slide-number">Slide 4 of 4 for Member 2 (Overall Slide 9)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Frontend Challenges & Deliverables</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-2">Frontend Engineering Challenges</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Hydration Mismatch:</strong> React 19 date formatting discrepancies between server and client locales.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Solution:</strong> Created a standardized <code>formatDate()</code> utility with client-mount guards.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Layout Shifts (CLS):</strong> Preventing jumps when loading external image posters.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Solution:</strong> Defined fixed aspect-ratio containers with shimmer skeleton loaders.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-2">Key Frontend Deliverables</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Semantic HTML5:</strong> Semantic elements (<code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;article&gt;</code>) for clean code.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>State Efficiency:</strong> Minimal re-renders using selective Zustand selectors.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>1-Click Demo Logins:</strong> Quick demo login buttons to make presentation testing seamless.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Cross-Device Usability:</strong> Tested across smartphones, tablets, laptops, and desktop screens.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 9 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 3: SLIDE 1 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-3">MEMBER 3: DATABASE & ORM ENGINEER</span>
+        <span class="slide-number">Slide 1 of 4 for Member 3 (Overall Slide 10)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">PostgreSQL Relational Schema Design</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-3">Relational Tables (src/db/schema.ts)</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>users:</strong> <code>id</code> (PK), <code>name</code>, <code>email</code> (unique), <code>passwordHash</code>, <code>role</code> (enum), <code>createdAt</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>events:</strong> <code>id</code> (PK), <code>title</code>, <code>category</code>, <code>location</code>, <code>ticketPriceCents</code>, <code>capacity</code>, <code>ticketsRemaining</code>, <code>organizerId</code> (FK).</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>bookings:</strong> <code>id</code> (PK), <code>reference</code> (unique), <code>eventId</code> (FK), <code>userId</code> (FK), <code>stripeSessionId</code> (unique), <code>quantity</code>, <code>totalCents</code>.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-3">Referential Integrity & Constraints</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Foreign Keys:</strong> <code>events.organizerId</code> &rarr; <code>users.id</code>; <code>bookings</code> &rarr; <code>events</code> & <code>users</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Cascade Deletes:</strong> <code>onDelete: 'cascade'</code> cleans up child records on parent removal.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Uniqueness:</strong> Enforced on email, booking reference, and Stripe session ID.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>ACID Guarantees:</strong> Full transactional consistency prevents orphaned bookings.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 10 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 3: SLIDE 2 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-3">MEMBER 3: DATABASE & ORM ENGINEER</span>
+        <span class="slide-number">Slide 2 of 4 for Member 3 (Overall Slide 11)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Drizzle ORM Integration & Type Safety</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-3">Why Drizzle ORM over Prisma</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Zero Runtime Overhead:</strong> Light TypeScript SQL layer with no heavyweight binaries.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>SQL Closeness:</strong> Clean syntax: <code>db.select().from(events).where(eq(events.id, id))</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Type Inference:</strong> Generates TypeScript types (<code>User</code>, <code>Event</code>, <code>Booking</code>) automatically.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Cold Starts:</strong> Extremely fast serverless cold start times on Vercel Edge.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-3">Migrations & Connection Pool</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Drizzle Kit Push:</strong> <code>npm run db:push</code> syncs TypeScript schema to PostgreSQL in seconds.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Connection Pool:</strong> Configured via native <code>pg.Pool</code> in <code>src/db/index.ts</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>SSL Enabled:</strong> Configured for secure connection to cloud serverless Neon DB.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Compile Safety:</strong> Catches misspelled columns at build time, not at runtime.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 11 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 3: SLIDE 3 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-3">MEMBER 3: DATABASE & ORM ENGINEER</span>
+        <span class="slide-number">Slide 3 of 4 for Member 3 (Overall Slide 12)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Inventory Concurrency & Data Integrity</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-3">Overselling Prevention Logic</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Inventory State:</strong> Tracks initial <code>capacity</code> alongside real-time <code>ticketsRemaining</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Atomic Decrement:</strong> Decrements remaining tickets upon confirmed payment.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Conditional SQL:</strong> <code>UPDATE events SET tickets_remaining = tickets_remaining - N WHERE id = X AND tickets_remaining &gt;= N</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Rollback:</strong> Rejects booking if affected rows === 0, preventing overselling.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-3">Index Optimization & Deduplication</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Unique Index:</strong> <code>uniqueIndex("bookings_session_idx").on(table.stripeSessionId)</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Idempotency:</strong> Prevents duplicate ticket issues if checkout redirect is refreshed.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Reference Hashes:</strong> 64-character unique booking hash ensures fraud prevention.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Join Speed:</strong> Foreign key indices ensure lightning-fast attendee history lookups.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 12 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 3: SLIDE 4 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-3">MEMBER 3: DATABASE & ORM ENGINEER</span>
+        <span class="slide-number">Slide 4 of 4 for Member 3 (Overall Slide 13)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Database Challenges & Seeding Automation</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-3">Database Challenges Solved</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Price Precision:</strong> Floating-point calculation rounding discrepancies in currencies.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Solution:</strong> Stored all monetary fields as integers in cents (<code>ticketPriceCents</code>).</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Timezones:</strong> Timezone discrepancies between venue local time and UTC database.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Solution:</strong> Stored timestamps in standard UTC and formatted to local on client.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-3">Database Seeding & Deliverables</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Seed Script:</strong> <code>src/db/seed.ts</code> restores realistic presentation data in 3 seconds.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Pre-seeded Logins:</strong> <code>organizer@demo.com</code> and <code>attendee@demo.com</code> for instant live testing.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>10+ Sample Shows:</strong> Covers movies, stadium concerts, football matches, and plays.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Zero Drift:</strong> Drizzle Kit keeps local development and production schemas identical.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 13 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 4: SLIDE 1 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-4">MEMBER 4: PAYMENT, TICKETING & DEVOPS ENGINEER</span>
+        <span class="slide-number">Slide 1 of 4 for Member 4 (Overall Slide 14)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Stripe Payment Gateway Integration</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-4">Stripe Checkout Lifecycle</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Session Creation:</strong> Server calls <code>stripe.checkout.sessions.create()</code> with line items.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Hosted Checkout:</strong> User redirected to official secure Stripe-hosted payment form.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Success Callback:</strong> On payment, Stripe redirects to <code>/checkout/success?session_id={CHECKOUT_SESSION_ID}</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Cancel Route:</strong> Cancel route releases seat without creating a phantom booking.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-4">Server Verification & PCI Standards</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Direct Verification:</strong> Server queries Stripe API to verify <code>session.payment_status === 'paid'</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>PCI-DSS:</strong> Credit card numbers never touch our servers; 100% handled by Stripe.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Test Keys:</strong> Uses official test card credentials (4242...) with sandbox secret key.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Metadata Tracking:</strong> Passes <code>eventId</code>, <code>userId</code>, and <code>quantity</code> in session metadata.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 14 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 4: SLIDE 2 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-4">MEMBER 4: PAYMENT, TICKETING & DEVOPS ENGINEER</span>
+        <span class="slide-number">Slide 2 of 4 for Member 4 (Overall Slide 15)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Programmatic PDF Ticket Generation (PDFKit)</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-4">PDFKit Vector Engine (src/lib/pdf.ts)</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Vector Pipeline:</strong> Generates official A4 e-tickets programmatically on the server.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Branded Header:</strong> Styled header banner "Evently E-Ticket" with booking reference.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Event Card:</strong> Formats event title, description, venue location, and date.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Attendee Info:</strong> Prints attendee name and email address for gate identity verification.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-4">Dynamic Buffering & Direct Streaming</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Embedded QR:</strong> QR code PNG buffer embedded directly using <code>doc.image(qrBuffer)</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>In-Memory Buffer:</strong> Assembles PDF chunks in memory with zero temp files written to disk.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Instant Download:</strong> Streams binary response with <code>Content-Type: application/pdf</code>.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Printable Pass:</strong> Clean vector formatting suitable for both phone screens and paper prints.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 15 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 4: SLIDE 3 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-4">MEMBER 4: PAYMENT, TICKETING & DEVOPS ENGINEER</span>
+        <span class="slide-number">Slide 3 of 4 for Member 4 (Overall Slide 16)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Scannable QR Codes & Automated Email Delivery</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-4">QR Code Generation & Gate Security</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>QR Generation:</strong> <code>qrcode</code> package in <code>src/lib/qr.ts</code> generates 2D matrix buffers.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Encoded Reference:</strong> Encodes unique booking reference hash for instantaneous lookup.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Gate Scanning:</strong> Event staff can scan QR using any standard smartphone camera.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Anti-Counterfeit:</strong> Unique hash cannot be forged without a matching confirmed DB record.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-4">Automated Email Dispatch (Nodemailer)</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Nodemailer Pipeline:</strong> Configured in <code>src/lib/email.ts</code> for transactional emails.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>HTML Receipt:</strong> Dispatches confirmation email with venue address and booking ID.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Asynchronous:</strong> Runs in the background without blocking the payment success page.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Resilient Fallback:</strong> If SMTP is offline, attendees still access tickets via My Tickets portal.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 16 of 18</span>
+      </div>
+    </div>
+
+    <!-- MEMBER 4: SLIDE 4 -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-4">MEMBER 4: PAYMENT, TICKETING & DEVOPS ENGINEER</span>
+        <span class="slide-number">Slide 4 of 4 for Member 4 (Overall Slide 17)</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">QA Testing, Cloud Deployment & Future Scope</h2>
+      </div>
+      <div class="slide-body">
+        <div class="card">
+          <div class="card-header card-header-4">Postman API Testing & Type Safety</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Postman Suites:</strong> Automated tests asserting status codes (200, 400, 401, 403, 404).</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Edge Cases:</strong> Verified zero-ticket bookings and unauthorized organizer actions are rejected.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>TypeScript Strict:</strong> <code>npm run typecheck</code> verifies zero undefined prop or query errors.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>ESLint 9:</strong> Enforces clean code style, hook dependencies, and unused variable cleanup.</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header card-header-4">Vercel Deployment & Future Scope</div>
+          <div class="card-content">
+            <div class="point"><span class="bullet">•</span><div><strong>Vercel CI/CD:</strong> Automatic continuous deployment upon every git push to main.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Serverless Scale:</strong> Next.js route handlers auto-scale on edge with zero server maintenance.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Neon Cloud DB:</strong> Serverless PostgreSQL on Neon.tech with SSL connection pooling.</div></div>
+            <div class="point"><span class="bullet">•</span><div><strong>Future Scope:</strong> Interactive SVG seat selection matrix, analytics charts, and WhatsApp alerts.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 17 of 18</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 18: EVALUATION MATRIX (4 MEMBERS) -->
+    <div class="slide">
+      <div class="slide-header">
+        <span class="role-badge role-all">PROJECT SUMMARY</span>
+        <span class="slide-number">Overall Slide 18 of 18</span>
+      </div>
+      <div class="slide-title-area">
+        <h2 class="slide-title">Team Responsibility & Module Matrix (4 Members)</h2>
+      </div>
+      <div style="padding: 16px 28px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+          <thead>
+            <tr style="background: #1e293b; color: white;">
+              <th style="padding: 14px; border: 1px solid #334155;">Member & Role</th>
+              <th style="padding: 14px; border: 1px solid #334155;">Tech Stack</th>
+              <th style="padding: 14px; border: 1px solid #334155;">Core Deliverables</th>
+              <th style="padding: 14px; border: 1px solid #334155;">Key Codebase Files</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background: #f8fafc;">
+              <td style="padding: 14px; border: 1px solid #e2e8f0; font-weight: 700; color: #1e40af;">Member 1: Backend Lead</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;">Next.js 16, JWT, bcryptjs</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;">Full-stack architecture, REST APIs, RBAC auth guards, httpOnly cookies</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;"><code>src/app/api/*</code>, <code>src/lib/auth.ts</code>, <code>src/lib/jwt.ts</code></td>
+            </tr>
+            <tr style="background: #ffffff;">
+              <td style="padding: 14px; border: 1px solid #e2e8f0; font-weight: 700; color: #9d174d;">Member 2: Frontend Lead</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;">React 19, Tailwind CSS, Framer</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;">6-category discovery catalog, search filters, organizer dashboard, attendee portal</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;"><code>src/app/events/*</code>, <code>src/components/*</code>, <code>src/app/dashboard/*</code></td>
+            </tr>
+            <tr style="background: #f8fafc;">
+              <td style="padding: 14px; border: 1px solid #e2e8f0; font-weight: 700; color: #166534;">Member 3: Database Lead</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;">PostgreSQL, Drizzle ORM</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;">Relational schema, cascade rules, atomic inventory decrements, seeding</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;"><code>src/db/schema.ts</code>, <code>src/db/index.ts</code>, <code>src/db/seed.ts</code></td>
+            </tr>
+            <tr style="background: #ffffff;">
+              <td style="padding: 14px; border: 1px solid #e2e8f0; font-weight: 700; color: #92400e;">Member 4: Payment & DevOps</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;">Stripe, PDFKit, QRCode, Vercel</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;">Stripe checkout redirect, dynamic PDF tickets, gate QR codes, cloud deploy</td>
+              <td style="padding: 14px; border: 1px solid #e2e8f0;"><code>src/lib/pdf.ts</code>, <code>src/lib/qr.ts</code>, <code>src/lib/stripe.ts</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="slide-footer">
+        <span>Gatherly Project Presentation | CSE Department</span>
+        <span>Slide 18 of 18</span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

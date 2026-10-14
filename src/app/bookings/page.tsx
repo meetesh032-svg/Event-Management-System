@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Calendar, Download, Loader2, MapPin } from "lucide-react";
+import { formatPrice } from "@/lib/format";
 
 type BookingWithEvent = {
   id: number;
@@ -75,7 +76,7 @@ export default function BookingsPage() {
                 <p className="mt-2 font-mono text-xs text-slate-500">Ref: {b.reference}</p>
               </div>
               <div className="flex flex-col gap-2 sm:text-right">
-                <p className="text-lg font-semibold text-indigo-300">${(b.totalCents / 100).toFixed(2)}</p>
+                <p className="text-lg font-semibold text-indigo-300">{formatPrice(b.totalCents)}</p>
                 <a
                   href={`/api/bookings/${b.id}/ticket`}
                   className="inline-flex items-center justify-center gap-1 rounded-xl bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/20"

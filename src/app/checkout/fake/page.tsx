@@ -4,12 +4,13 @@ import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreditCard, Landmark, Smartphone, Wallet, Loader2, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { formatRupees } from "@/lib/format";
 
 const PAYMENT_METHODS = [
-  { id: "card", title: "Credit / Debit Card", icon: CreditCard, description: "Visa, Mastercard, Amex" },
-  { id: "upi", title: "UPI", icon: Smartphone, description: "Google Pay, PhonePe, Paytm" },
-  { id: "paypal", title: "PayPal", icon: Wallet, description: "Pay via your PayPal account" },
-  { id: "netbanking", title: "Net Banking", icon: Landmark, description: "All major banks supported" },
+  { id: "upi", title: "UPI", icon: Smartphone, description: "Google Pay, PhonePe, Paytm, BHIM" },
+  { id: "card", title: "Credit / Debit Card", icon: CreditCard, description: "Visa, Mastercard, RuPay" },
+  { id: "netbanking", title: "Net Banking", icon: Landmark, description: "HDFC, SBI, ICICI, Axis & more" },
+  { id: "wallet", title: "Wallets", icon: Wallet, description: "Paytm, PhonePe, Amazon Pay" },
 ];
 
 function CheckoutFakeContent() {
@@ -22,7 +23,8 @@ function CheckoutFakeContent() {
   const amountStr = searchParams.get("amount");
   const title = searchParams.get("title");
 
-  const amount = amountStr ? (parseInt(amountStr, 10) / 100).toFixed(2) : "0.00";
+  const amountNum = amountStr ? parseInt(amountStr, 10) : 0;
+  const formattedAmount = formatRupees(amountNum);
 
   const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0].id);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -117,16 +119,16 @@ function CheckoutFakeContent() {
               <div className="flex-1 space-y-4">
                 <div className="flex justify-between text-slate-300">
                   <span>Ticket (x1)</span>
-                  <span>${amount}</span>
+                  <span>{formattedAmount}</span>
                 </div>
                 <div className="flex justify-between text-slate-300">
                   <span>Taxes & Fees</span>
-                  <span>$0.00</span>
+                  <span>₹0.00</span>
                 </div>
                 <div className="my-4 border-t border-white/10 pt-4">
                   <div className="flex justify-between text-xl font-bold text-white">
                     <span>Total</span>
-                    <span>${amount}</span>
+                    <span>{formattedAmount}</span>
                   </div>
                 </div>
               </div>
@@ -167,7 +169,7 @@ function CheckoutFakeContent() {
                         exit={{ opacity: 0 }}
                         className="flex items-center gap-2"
                       >
-                        Pay ${amount} Securely
+                        Pay {formattedAmount} Securely
                       </motion.div>
                     )}
                   </AnimatePresence>

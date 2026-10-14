@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
+import { formatPrice } from "@/lib/format";
 
 type EventItem = {
   id: number;
   title: string;
   category: string;
   imageUrl?: string | null;
+  ticketPriceCents?: number;
 };
 
 const categories = [
@@ -144,7 +146,14 @@ function EventsPageContent() {
                       style={{ backgroundImage: `url(${event.imageUrl ?? "/placeholder-event.jpg"})` }}
                     />
                     <div className="mt-3">
-                      <h3 className="text-base font-bold text-gray-900 truncate">{event.title}</h3>
+                      <div className="flex items-start justify-between gap-1">
+                        <h3 className="text-base font-bold text-gray-900 truncate">{event.title}</h3>
+                        {event.ticketPriceCents !== undefined && (
+                          <span className="shrink-0 text-xs font-semibold text-[#F84464] bg-rose-50 px-2 py-0.5 rounded">
+                            {formatPrice(event.ticketPriceCents)}
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-1 text-[13px] text-gray-500 font-medium">{event.category}</p>
                     </div>
                   </Link>

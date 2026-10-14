@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { formatPrice } from "@/lib/format";
 
 type EventItem = {
   id: number;
   title: string;
   category: string;
   imageUrl?: string | null;
+  ticketPriceCents?: number;
 };
 
 export function HeroEvents() {
@@ -54,7 +56,14 @@ export function HeroEvents() {
                   style={{ backgroundImage: `url(${event.imageUrl ?? "/placeholder-event.jpg"})` }}
                 />
                 <div className="mt-3">
-                  <h3 className="text-[17px] font-bold text-gray-900 truncate leading-tight">{event.title}</h3>
+                  <div className="flex items-start justify-between gap-1">
+                    <h3 className="text-[17px] font-bold text-gray-900 truncate leading-tight">{event.title}</h3>
+                    {event.ticketPriceCents !== undefined && (
+                      <span className="shrink-0 text-xs font-semibold text-[#F84464] bg-rose-50 px-2 py-0.5 rounded">
+                        {formatPrice(event.ticketPriceCents)}
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-1 text-[13px] text-gray-500">{event.category}</p>
                 </div>
               </Link>
