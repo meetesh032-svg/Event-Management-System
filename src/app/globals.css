@@ -1,29 +1,134 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #F84464;
+  --color-primary-hover: #E03252;
+  --color-primary-light: #FFF0F3;
+  --color-primary-dark: #C21F40;
+
+  --color-secondary: #333545;
+  --color-secondary-hover: #222433;
+  --color-secondary-light: #44475A;
+
+  --color-accent: #FF8552;
+  --color-accent-subtle: #FFF4EE;
+
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #F8F9FA;
+  --color-surface-muted: #F1F3F5;
+
+  --color-border: #E5E7EB;
+  --color-border-subtle: #F0F2F5;
+
+  --color-text-primary: #1F2533;
+  --color-text-secondary: #666673;
+  --color-text-muted: #9494A0;
+
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --color-info: #3B82F6;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+}
+
+:root {
+  --primary: #F84464;
+  --primary-hover: #E03252;
+  --primary-light: #FFF0F3;
+  --primary-dark: #C21F40;
+
+  --secondary: #333545;
+  --secondary-hover: #222433;
+  --secondary-light: #44475A;
+
+  --accent: #FF8552;
+  --accent-subtle: #FFF4EE;
+
+  --background: #F8F9FA;
+  --surface: #FFFFFF;
+  --surface-subtle: #F8F9FA;
+  --surface-muted: #F1F3F5;
+
+  --border: #E5E7EB;
+  --border-subtle: #F0F2F5;
+
+  --text-primary: #1F2533;
+  --text-secondary: #666673;
+  --text-muted: #9494A0;
+
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
+
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: #F84464;
+    color: #FFFFFF;
+  }
+
+  /* Accessible Focus Ring */
+  *:focus-visible {
+    outline: 2px solid #F84464;
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply rounded-2xl border border-gray-200 bg-white shadow-sm;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(229, 231, 235, 0.8);
   }
+
   .glass-strong {
-    @apply rounded-2xl border border-gray-200 bg-white shadow-md;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(229, 231, 235, 0.9);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
   }
+
   .text-gradient {
-    @apply bg-gradient-to-r from-red-500 to-rose-500 bg-clip-text text-transparent;
+    background: linear-gradient(135deg, #F84464 0%, #FF8552 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
+
   .hidden-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
+
   .hidden-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

@@ -4,8 +4,23 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CheckCircle, Download, Loader2, Mail, FileText, QrCode } from "lucide-react";
-import { formatPrice } from "@/lib/format";
+import {
+  CheckCircle,
+  Download,
+  Loader2,
+  Mail,
+  FileText,
+  QrCode,
+  Calendar,
+  Share2,
+  Ticket,
+  ChevronRight,
+  ShieldCheck,
+  Sparkles,
+  MapPin,
+} from "lucide-react";
+import { formatRupees } from "@/lib/format";
+import { Button, Badge, Card } from "@/components/ui";
 
 type BookingDetail = {
   id: number;
@@ -16,24 +31,36 @@ type BookingDetail = {
   seats?: string | null;
   couponCode?: string | null;
   discountCents?: number;
+  stripeSessionId?: string;
   createdAt: string;
+  event?: {
+    id: number;
+    title: string;
+    location: string;
+    startsAt: string;
+    imageUrl?: string | null;
+    category?: string;
+  };
 };
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
+  const bookingRef = searchParams.get("booking_ref");
+
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [copiedShare, setCopiedShare] = useState(false);
 
   useEffect(() => {
-    if (!sessionId) {
-      setError("Missing checkout session");
+    if (!sessionId && !bookingRef) {
+      setError("Missing booking session identifier.");
       setLoading(false);
       return;
     }
 
-    let url = `/api/checkout/confirm?session_id=${sessionId}`;
+    let url = `/api/checkout/confirm?session_id=${sessionId || bookingRef}`;
     const fakeEventId = searchParams.get("fake_event_id");
     const fakeUserId = searchParams.get("fake_user_id");
     const fakeSeats = searchParams.get("fake_seats");
@@ -61,10 +88,22 @@ function SuccessContent() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Confirmation failed");
         setBooking(data.booking);
+
+        // Fetch event details for rich preview
+        if (data.booking?.eventId) {
+          fetch(`/api/events/${data.booking.eventId}`)
+            .then((r) => r.json())
+            .then((evtData) => {
+              if (evtData?.event) {
+                setBooking((prev) => (prev ? { ...prev, event: evtData.event } : null));
+              }
+            })
+            .catch(() => {});
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [sessionId]);
+  }, [sessionId, bookingRef]);
 
   let parsedSeats: string[] = [];
   if (booking?.seats) {
@@ -75,46 +114,127 @@ function SuccessContent() {
     }
   }
 
+  const handleShare = () => {
+    const shareUrl = `${window.location.origin}/tickets/${booking?.reference}`;
+    if (navigator.share) {
+      navigator.share({
+        title: "My Gatherly Ticket",
+        text: `Check out my confirmed booking: ${booking?.reference}`,
+        url: shareUrl,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2500);
+    }
+  };
+
+  const handleAddToCalendar = () => {
+    if (!booking?.event) return;
+    const title = encodeURIComponent(booking.event.title);
+    const details = encodeURIComponent(`Booking Reference: ${booking.reference}\nLocation: ${booking.event.location}`);
+    const location = encodeURIComponent(booking.event.location);
+    const startDate = new Date(booking.event.startsAt).toISOString().replace(/-|:|\.\d\d\d/g, "");
+    const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${startDate}/${startDate}`;
+    window.open(googleCalendarUrl, "_blank");
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="glass-strong p-10"
-    >
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-10 sm:py-16">
       {loading ? (
-        <div className="flex flex-col items-center gap-3 py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
-          <p className="text-slate-400">Confirming your booking…</p>
+        <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-gray-200 shadow-sm">
+          <Loader2 className="h-10 w-10 animate-spin text-[#F84464] mb-4" />
+          <h3 className="text-lg font-bold text-gray-900">Securing Your Reservation</h3>
+          <p className="mt-1 text-xs text-gray-500">Generating digital QR tickets & tax invoice...</p>
         </div>
       ) : error ? (
-        <div className="py-6 text-rose-300">
-          <p className="font-medium">{error}</p>
-          <Link href="/events" className="mt-4 inline-block text-indigo-400 hover:underline">
-            Browse events
-          </Link>
+        <div className="p-8 bg-white rounded-3xl border border-gray-200 shadow-sm text-center">
+          <div className="h-12 w-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
+            <CheckCircle className="h-6 w-6 text-rose-600" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900">Unable to retrieve confirmation</h3>
+          <p className="mt-1 text-xs text-gray-500">{error}</p>
+          <div className="mt-6 flex justify-center gap-3">
+            <Link href="/bookings">
+              <Button variant="primary" size="sm">Go to My Bookings</Button>
+            </Link>
+          </div>
         </div>
       ) : booking ? (
-        <>
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-            <CheckCircle className="h-8 w-8" />
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-10 shadow-xl overflow-hidden"
+        >
+          {/* Top Success Badge Animation */}
+          <div className="text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 shadow-inner mb-4">
+              <CheckCircle className="h-10 w-10" />
+            </div>
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 uppercase tracking-wider">
+              Payment Confirmed
+            </span>
+            <h1 className="mt-3 text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+              You&apos;re All Set for the Show!
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-gray-500">
+              Your official digital ticket pass and tax invoice have been generated.
+            </p>
           </div>
-          <h1 className="mt-6 text-2xl font-bold">Booking confirmed!</h1>
-          <p className="mt-2 text-slate-400">
-            Your e-ticket and invoice are ready for download.
-          </p>
 
-          <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6 text-left space-y-3">
-            <div>
-              <p className="text-xs text-slate-400">Booking reference</p>
-              <p className="mt-1 font-mono text-lg font-semibold text-indigo-300">{booking.reference}</p>
+          {/* Event Snapshot Card */}
+          {booking.event && (
+            <div className="mt-8 rounded-2xl border border-gray-100 bg-[#F8F9FA] p-4 sm:p-5 flex items-center gap-4">
+              <div
+                className="relative h-20 w-16 shrink-0 rounded-xl bg-gray-200 bg-cover bg-center overflow-hidden border border-gray-200"
+                style={{ backgroundImage: `url(${booking.event.imageUrl || "/placeholder-event.jpg"})` }}
+              />
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-bold text-[#F84464] uppercase tracking-wider">
+                  {booking.event.category || "Show"}
+                </span>
+                <h3 className="text-base font-bold text-gray-900 truncate mt-0.5">
+                  {booking.event.title}
+                </h3>
+                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5 truncate">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                  {booking.event.location}
+                </p>
+                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                  {new Date(booking.event.startsAt).toLocaleDateString("en-IN", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Booking Metadata Table */}
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 space-y-3.5 text-xs sm:text-sm">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <span className="text-gray-500 font-medium">Booking ID</span>
+              <span className="font-mono font-bold text-gray-900 text-sm">{booking.reference}</span>
+            </div>
+
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <span className="text-gray-500 font-medium">Tickets Quantity</span>
+              <span className="font-bold text-gray-900">{booking.quantity || 1} Ticket(s)</span>
             </div>
 
             {parsedSeats.length > 0 && (
-              <div>
-                <p className="text-xs text-slate-400">Reserved Seats</p>
-                <div className="mt-1.5 flex flex-wrap gap-2">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <span className="text-gray-500 font-medium">Reserved Seats</span>
+                <div className="flex flex-wrap gap-1 justify-end">
                   {parsedSeats.map((seat) => (
-                    <span key={seat} className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-sm font-semibold text-indigo-300">
+                    <span
+                      key={seat}
+                      className="rounded-md bg-[#FFF0F3] border border-[#F84464]/20 px-2 py-0.5 text-xs font-bold text-[#F84464]"
+                    >
                       {seat}
                     </span>
                   ))}
@@ -122,64 +242,89 @@ function SuccessContent() {
               </div>
             )}
 
-            {booking.discountCents && booking.discountCents > 0 ? (
-              <div className="flex justify-between items-center text-xs text-emerald-400 border-t border-white/5 pt-2">
-                <span>Promo Applied ({booking.couponCode})</span>
-                <span>-{formatPrice(booking.discountCents)}</span>
-              </div>
-            ) : null}
-
-            <div className="border-t border-white/5 pt-2">
-              <p className="text-xs text-slate-400">Total paid</p>
-              <p className="mt-1 font-semibold text-lg text-white">{formatPrice(booking.totalCents)}</p>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-gray-500 font-medium">Total Paid</span>
+              <span className="text-lg font-black text-gray-900">{formatRupees(booking.totalCents)}</span>
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col gap-3">
+          {/* Primary Action Buttons */}
+          <div className="mt-8 space-y-3">
             <Link
               href={`/tickets/${booking.reference}`}
-              className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3.5 text-sm font-bold shadow-lg shadow-indigo-600/30 transition text-white"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#F84464] hover:bg-[#E03252] py-3.5 px-6 text-sm font-bold text-white shadow-lg shadow-[#F84464]/20 transition-all"
             >
-              <QrCode className="h-4 w-4" /> Open Mobile Pass (QR & Barcode)
+              <QrCode className="h-4 w-4" /> Open Fullscreen QR Ticket Pass
             </Link>
 
             <div className="grid grid-cols-2 gap-3">
               <a
                 href={`/api/bookings/${booking.id}/ticket`}
-                className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-semibold hover:bg-white/10 text-slate-200 transition"
+                download
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 py-3 text-xs font-bold text-gray-700 shadow-sm transition"
               >
-                <Download className="h-4 w-4" /> e-Ticket PDF
+                <Download className="h-4 w-4 text-gray-500" /> e-Ticket PDF
               </a>
               <a
                 href={`/api/bookings/${booking.id}/invoice`}
-                className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-xs font-semibold hover:bg-white/10 text-slate-200 transition"
+                download
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 py-3 text-xs font-bold text-gray-700 shadow-sm transition"
               >
-                <FileText className="h-4 w-4" /> Tax Invoice PDF
+                <FileText className="h-4 w-4 text-gray-500" /> Tax Invoice PDF
               </a>
             </div>
 
-            <p className="flex items-center justify-center gap-2 text-xs text-slate-400 mt-2">
-              <Mail className="h-3.5 w-3.5" /> Also sent to your registered email
-            </p>
-            <Link
-              href="/bookings"
-              className="rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-medium hover:bg-white/10 text-slate-300"
-            >
-              View all my tickets
-            </Link>
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleAddToCalendar}
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 py-2.5 text-xs font-semibold text-gray-700 transition"
+              >
+                <Calendar className="h-4 w-4 text-gray-500" /> Add to Calendar
+              </button>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 py-2.5 text-xs font-semibold text-gray-700 transition"
+              >
+                <Share2 className="h-4 w-4 text-gray-500" />
+                <span>{copiedShare ? "Link Copied!" : "Share Ticket"}</span>
+              </button>
+            </div>
           </div>
-        </>
+
+          {/* Email Confirmation Notice */}
+          <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+            <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500">
+              <Mail className="h-3.5 w-3.5 text-emerald-600" />
+              <span>Confirmation email sent with PDF passes and tax invoice.</span>
+            </p>
+            <div className="mt-4 flex items-center justify-center gap-6 text-xs font-semibold">
+              <Link href="/bookings" className="text-[#F84464] hover:underline">
+                View All My Bookings
+              </Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/events" className="text-gray-600 hover:text-gray-900">
+                Explore More Shows
+              </Link>
+            </div>
+          </div>
+        </motion.div>
       ) : null}
-    </motion.div>
+    </div>
   );
 }
 
 export default function BookingSuccessPage() {
   return (
-    <div className="mx-auto max-w-xl px-6 py-20 text-center">
-      <Suspense fallback={<div className="glass-strong h-96 animate-pulse" />}>
-        <SuccessContent />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA]">
+          <Loader2 className="h-8 w-8 animate-spin text-[#F84464]" />
+        </div>
+      }
+    >
+      <SuccessContent />
+    </Suspense>
   );
 }

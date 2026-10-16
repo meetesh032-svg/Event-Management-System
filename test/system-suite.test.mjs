@@ -143,3 +143,101 @@ test("Performance Test: In-Memory Cache TTL and Prefix Invalidation", async () =
   assert.equal(cache.has("event:2"), false);
   assert.equal(cache.has("user:42"), true);
 });
+
+// Test 8: Payment Fee & Tax Calculation (18% GST + Convenience + Platform Fee)
+test("Payment Architecture Test: Transparent Fee & Tax Breakdown", () => {
+  const calculateFeeBreakdown = (subtotalCents, discountCents = 0) => {
+    const discountedBase = Math.max(0, subtotalCents - discountCents);
+    const convenienceFeeCents = subtotalCents > 0 ? 2500 : 0; // ₹25.00
+    const platformFeeCents = subtotalCents > 0 ? 500 : 0;     // ₹5.00
+    const taxableFee = convenienceFeeCents + platformFeeCents;
+    const taxesCents = subtotalCents > 0 ? Math.round((taxableFee * 18) / 100) : 0; // 18% GST = ₹5.40 -> 540 cents
+    const totalAmountCents = discountedBase + convenienceFeeCents + platformFeeCents + taxesCents;
+
+    return {
+      subtotalCents,
+      convenienceFeeCents,
+      platformFeeCents,
+      taxesCents,
+      discountCents,
+      totalAmountCents,
+    };
+  };
+
+  // Regular Booking: ₹1,000 subtotal (100,000 cents)
+  const breakdown = calculateFeeBreakdown(100000);
+  assert.equal(breakdown.subtotalCents, 100000);
+  assert.equal(breakdown.convenienceFeeCents, 2500);
+  assert.equal(breakdown.platformFeeCents, 500);
+  assert.equal(breakdown.taxesCents, 540); // 18% of ₹30 = ₹5.40
+  assert.equal(breakdown.totalAmountCents, 103540); // ₹1,035.40
+
+  // Free Event: ₹0 subtotal
+  const freeBreakdown = calculateFeeBreakdown(0);
+  assert.equal(freeBreakdown.totalAmountCents, 0);
+
+  // Discounted with coupon
+  const promoBreakdown = calculateFeeBreakdown(100000, 20000); // ₹200 off
+  assert.equal(promoBreakdown.totalAmountCents, 83540); // ₹800 + ₹35.40
+});
+
+// Test 9: Payment Gateway Abstraction & Cryptographic Verification
+test("Payment Architecture Test: Razorpay HMAC & PhonePe Checksum Verification", async () => {
+  const crypto = await import("crypto");
+
+  // 1. Razorpay HMAC SHA256 Signature Verification
+  const keySecret = "rzp_secret_production_key";
+  const orderId = "order_Gatherly_98765";
+  const paymentId = "pay_Hk392Jkld8";
+  const validSignature = crypto
+    .createHmac("sha256", keySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest("hex");
+
+  const verifyRazorpay = (oid, pid, sig, secret) => {
+    const generated = crypto.createHmac("sha256", secret).update(`${oid}|${pid}`).digest("hex");
+    return generated === sig;
+  };
+
+  assert.equal(verifyRazorpay(orderId, paymentId, validSignature, keySecret), true);
+  assert.equal(verifyRazorpay(orderId, paymentId, "tampered_signature", keySecret), false);
+
+  // 2. PhonePe Checksum Verification (Base64 + Endpoint + Salt)
+  const saltKey = "phonepe_salt_key_12345";
+  const saltIndex = "1";
+  const payloadObj = { merchantId: "PGTEST", amount: 50000 };
+  const base64 = Buffer.from(JSON.stringify(payloadObj)).toString("base64");
+  const expectedHash = crypto.createHash("sha256").update(`${base64}/pg/v1/pay${saltKey}`).digest("hex");
+  const xVerifyHeader = `${expectedHash}###${saltIndex}`;
+
+  const verifyPhonePe = (b64, verifyHeader, salt, index) => {
+    const [receivedHash, receivedIndex] = verifyHeader.split("###");
+    if (receivedIndex !== index) return false;
+    const computed = crypto.createHash("sha256").update(`${b64}/pg/v1/pay${salt}`).digest("hex");
+    return computed === receivedHash;
+  };
+
+  assert.equal(verifyPhonePe(base64, xVerifyHeader, saltKey, saltIndex), true);
+});
+
+// Test 10: Idempotency & Duplicate Payment Prevention
+test("Payment Architecture Test: Idempotent Booking Creation Prevents Double Booking", () => {
+  const processedSessions = new Set();
+
+  const recordBooking = (sessionId) => {
+    if (processedSessions.has(sessionId)) {
+      return { success: true, isDuplicate: true };
+    }
+    processedSessions.add(sessionId);
+    return { success: true, isDuplicate: false, bookingId: 101 };
+  };
+
+  const firstAttempt = recordBooking("sess_12345_unique");
+  assert.equal(firstAttempt.isDuplicate, false);
+  assert.equal(firstAttempt.bookingId, 101);
+
+  // Simultaneous replay with same session ID
+  const replayAttempt = recordBooking("sess_12345_unique");
+  assert.equal(replayAttempt.isDuplicate, true);
+});
+

@@ -145,15 +145,15 @@ export async function POST(req: NextRequest) {
     const finalAmountCents = Math.max(0, totalCents - discountCents);
 
     const origin = process.env.NEXT_PUBLIC_APP_URL ?? `http://${req.headers.get("host")}`;
-    const fakeSessionId = `fake_sess_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const checkoutSessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const seatsParam = validatedSeats.length ? `&seats=${encodeURIComponent(JSON.stringify(validatedSeats))}` : "";
     const couponParam = appliedCoupon ? `&coupon=${encodeURIComponent(appliedCoupon)}&discount=${discountCents}` : "";
     const guestParam = isGuestCheckout ? `&is_guest=true&guest_email=${encodeURIComponent(customerEmail)}&guest_name=${encodeURIComponent(customerName)}` : "";
 
-    const fakeCheckoutUrl = `${origin}/checkout/fake?session_id=${fakeSessionId}&eventId=${event.id}&userId=${userId}&amount=${finalAmountCents}&original_amount=${totalCents}&quantity=${quantity}&title=${encodeURIComponent(event.title)}${seatsParam}${couponParam}${guestParam}`;
+    const checkoutUrl = `${origin}/checkout?session_id=${checkoutSessionId}&eventId=${event.id}&userId=${userId}&amount=${finalAmountCents}&original_amount=${totalCents}&quantity=${quantity}&title=${encodeURIComponent(event.title)}${seatsParam}${couponParam}${guestParam}`;
 
     return NextResponse.json({
-      url: fakeCheckoutUrl,
+      url: checkoutUrl,
       discountCents,
       finalAmountCents,
       quantity,

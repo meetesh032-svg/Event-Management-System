@@ -253,13 +253,38 @@ export const paymentLogs = pgTable("payment_logs", {
   id: serial("id").primaryKey(),
   bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "cascade" }),
   userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
-  gateway: varchar("gateway", { length: 50 }).notNull().default("wallet"), // 'stripe' | 'razorpay' | 'paypal' | 'upi' | 'wallet'
+  gateway: varchar("gateway", { length: 50 }).notNull().default("wallet"), // 'stripe' | 'razorpay' | 'cashfree' | 'phonepe' | 'paypal' | 'payu' | 'ccavenue' | 'bank_transfer' | 'cash_on_event' | 'free' | 'wallet'
   transactionId: varchar("transaction_id", { length: 255 }).notNull(),
   amountCents: integer("amount_cents").notNull(),
   currency: varchar("currency", { length: 10 }).notNull().default("INR"),
   status: varchar("status", { length: 50 }).notNull().default("succeeded"), // 'initiated' | 'succeeded' | 'failed' | 'refunded'
   paymentMethodDetails: text("payment_method_details"),
   errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const webhookLogs = pgTable("webhook_logs", {
+  id: serial("id").primaryKey(),
+  gateway: varchar("gateway", { length: 50 }).notNull(),
+  eventType: varchar("event_type", { length: 100 }).notNull(),
+  payload: text("payload"),
+  signature: varchar("signature", { length: 500 }),
+  status: varchar("status", { length: 50 }).default("received").notNull(), // 'received' | 'processed' | 'failed' | 'ignored'
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const refunds = pgTable("refunds", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  gateway: varchar("gateway", { length: 50 }).notNull(),
+  transactionId: varchar("transaction_id", { length: 255 }).notNull(),
+  refundId: varchar("refund_id", { length: 255 }).notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  currency: varchar("currency", { length: 10 }).default("INR").notNull(),
+  reason: text("reason"),
+  status: varchar("status", { length: 50 }).default("succeeded").notNull(), // 'pending' | 'succeeded' | 'failed'
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
@@ -422,3 +447,7 @@ export type GiftCard = typeof giftCards.$inferSelect;
 export type NewGiftCard = typeof giftCards.$inferInsert;
 export type Membership = typeof memberships.$inferSelect;
 export type NewMembership = typeof memberships.$inferInsert;
+export type WebhookLog = typeof webhookLogs.$inferSelect;
+export type NewWebhookLog = typeof webhookLogs.$inferInsert;
+export type Refund = typeof refunds.$inferSelect;
+export type NewRefund = typeof refunds.$inferInsert;
