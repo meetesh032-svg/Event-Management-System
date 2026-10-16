@@ -13,6 +13,13 @@ export async function GET() {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatarUrl: user.avatarUrl,
+        isEmailVerified: user.isEmailVerified,
+        mfaEnabled: user.mfaEnabled,
+        bio: user.bio,
+        phone: user.phone,
+        isVerifiedOrganizer: user.isVerifiedOrganizer,
+        walletBalanceCents: user.walletBalanceCents,
       },
     });
   } catch (error) {

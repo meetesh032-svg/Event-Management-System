@@ -1,87 +1,156 @@
 import Link from "next/link";
 import { requireOrganizer } from "@/lib/auth";
 import { db } from "@/db";
-import { events, bookings } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
-import { PlusCircle, Users, Ticket } from "lucide-react";
-import DeleteEventButton from "./DeleteEventButton";
+import { events, bookings, users } from "@/db/schema";
+import { eq, sql, desc } from "drizzle-orm";
+import OrganizerDashboardClient from "./OrganizerDashboardClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const user = await requireOrganizer();
 
+  // 1. Fetch organizer events
   const myEvents = await db
     .select({
       id: events.id,
       title: events.title,
+      category: events.category,
+      status: events.status,
       startsAt: events.startsAt,
-      ticketsRemaining: events.ticketsRemaining,
       capacity: events.capacity,
-      bookingsCount: sql<number>`count(${bookings.id})`.mapWith(Number),
+      ticketsRemaining: events.ticketsRemaining,
+      ticketPriceCents: events.ticketPriceCents,
     })
     .from(events)
-    .leftJoin(bookings, eq(bookings.eventId, events.id))
     .where(eq(events.organizerId, user.id))
-    .groupBy(events.id);
+    .orderBy(desc(events.createdAt));
+
+  const eventIds = myEvents.map((e) => e.id);
+
+  // 2. Fetch booking sales aggregation
+  let eventSalesMap: Record<number, { ticketsSold: number; revenueCents: number; bookingCount: number }> = {};
+
+  if (eventIds.length > 0) {
+    const salesQuery = await db
+      .select({
+        eventId: bookings.eventId,
+        ticketsSold: sql<number>`COALESCE(SUM(${bookings.quantity}), 0)`.mapWith(Number),
+        revenueCents: sql<number>`COALESCE(SUM(${bookings.totalCents}), 0)`.mapWith(Number),
+        bookingCount: sql<number>`COUNT(${bookings.id})`.mapWith(Number),
+      })
+      .from(bookings)
+      .where(sql`${bookings.eventId} IN ${eventIds}`)
+      .groupBy(bookings.eventId);
+
+    for (const s of salesQuery) {
+      eventSalesMap[s.eventId] = {
+        ticketsSold: s.ticketsSold,
+        revenueCents: s.revenueCents,
+        bookingCount: s.bookingCount,
+      };
+    }
+  }
+
+  // 3. Compute summaries
+  let totalRevenueCents = 0;
+  let totalTicketsSold = 0;
+  let totalCapacity = 0;
+  let publishedCount = 0;
+  let draftCount = 0;
+  let scheduledCount = 0;
+
+  const serializedEvents = myEvents.map((e) => {
+    const sales = eventSalesMap[e.id] || { ticketsSold: 0, revenueCents: 0, bookingCount: 0 };
+    totalRevenueCents += sales.revenueCents;
+    totalTicketsSold += sales.ticketsSold;
+    totalCapacity += e.capacity;
+
+    if (e.status === "draft") draftCount++;
+    else if (e.status === "scheduled") scheduledCount++;
+    else publishedCount++;
+
+    const occupancyRate = e.capacity > 0 ? Math.round((sales.ticketsSold / e.capacity) * 100) : 0;
+
+    return {
+      id: e.id,
+      title: e.title,
+      category: e.category,
+      status: e.status,
+      startsAt: e.startsAt.toISOString(),
+      capacity: e.capacity,
+      ticketsRemaining: e.ticketsRemaining,
+      bookingsCount: sales.bookingCount,
+      ticketsSold: sales.ticketsSold,
+      revenueCents: sales.revenueCents,
+      occupancyRate,
+    };
+  });
+
+  const overallOccupancy = totalCapacity > 0 ? Math.round((totalTicketsSold / totalCapacity) * 100) : 0;
+
+  // 4. Fetch recent sales
+  let recentBookings: any[] = [];
+  if (eventIds.length > 0) {
+    const bookingsData = await db
+      .select({
+        id: bookings.id,
+        reference: bookings.reference,
+        quantity: bookings.quantity,
+        totalCents: bookings.totalCents,
+        status: bookings.status,
+        createdAt: bookings.createdAt,
+        eventTitle: events.title,
+        attendeeName: users.name,
+        attendeeEmail: users.email,
+      })
+      .from(bookings)
+      .innerJoin(events, eq(bookings.eventId, events.id))
+      .innerJoin(users, eq(bookings.userId, users.id))
+      .where(eq(events.organizerId, user.id))
+      .orderBy(desc(bookings.createdAt))
+      .limit(6);
+
+    recentBookings = bookingsData.map((b) => ({
+      ...b,
+      createdAt: b.createdAt.toISOString(),
+    }));
+  }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12 bg-gray-50 min-h-screen">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Organizer Dashboard</h1>
-          <p className="mt-1 text-gray-500">Manage your events and attendees.</p>
-        </div>
-        <Link
-          href="/dashboard/events/new"
-          className="flex items-center gap-2 rounded-lg bg-[#F84464] px-5 py-2.5 text-sm font-semibold text-white hover:bg-rose-600 transition shadow-sm"
-        >
-          <PlusCircle className="h-4 w-4" /> New Event
-        </Link>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {myEvents.map((event) => (
-          <div
-            key={event.id}
-            className="rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col justify-between p-6 transition hover:border-[#F84464]/30 hover:shadow-md"
-          >
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">{event.title}</h3>
-              <p className="mt-1 text-sm text-gray-500 font-medium">
-                {new Date(event.startsAt).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500 font-medium">Capacity</p>
-                <p className="font-semibold text-gray-900">{event.capacity}</p>
-              </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500 font-medium">Booked</p>
-                <p className="font-semibold text-gray-900">{event.bookingsCount}</p>
-              </div>
-            </div>
-            <div className="mt-6 flex gap-3">
-              <Link
-                href={`/dashboard/events/${event.id}/attendees`}
-                className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
-                <Users className="h-4 w-4" /> Attendees
-              </Link>
-              <DeleteEventButton eventId={event.id} />
-            </div>
+    <div className="min-h-screen bg-slate-950 px-6 py-12 text-white">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-white">Organizer Dashboard</h1>
+            <p className="mt-1 text-sm text-slate-400">
+              Real-time ticket sales, event lifecycle management, and attendee analytics.
+            </p>
           </div>
-        ))}
-      </div>
-
-      {myEvents.length === 0 && (
-        <div className="mt-12 rounded-2xl border border-dashed border-gray-300 p-12 text-center text-gray-500 bg-white">
-          <Ticket className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-          <p className="text-lg font-medium text-gray-900">No events yet</p>
-          <p className="text-sm">Create your first event to start selling tickets.</p>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/analytics"
+              className="flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2.5 text-xs font-bold text-white transition shadow-lg shadow-indigo-600/30"
+            >
+              <span>View Executive Analytics & Peak Hours →</span>
+            </Link>
+          </div>
         </div>
-      )}
+
+        <OrganizerDashboardClient
+          summary={{
+            totalRevenueCents,
+            totalTicketsSold,
+            totalEvents: myEvents.length,
+            publishedCount,
+            draftCount,
+            scheduledCount,
+            overallOccupancy,
+          }}
+          events={serializedEvents}
+          recentBookings={recentBookings}
+        />
+      </div>
     </div>
   );
 }

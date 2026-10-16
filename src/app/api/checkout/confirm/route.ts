@@ -20,6 +20,15 @@ export async function GET(req: NextRequest) {
         metadata: {
           eventId: searchParams.get("fake_event_id"),
           userId: searchParams.get("fake_user_id"),
+          seats: searchParams.get("fake_seats"),
+          quantity: searchParams.get("fake_quantity"),
+          coupon: searchParams.get("fake_coupon"),
+          discount: searchParams.get("fake_discount"),
+          isGuest: searchParams.get("is_guest"),
+          guestEmail: searchParams.get("guest_email"),
+          guestName: searchParams.get("guest_name"),
+          totalCents: searchParams.get("fake_total"),
+          gateway: searchParams.get("fake_gateway") || "card",
         },
       };
     } else {

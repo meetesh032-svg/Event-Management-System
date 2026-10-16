@@ -3,8 +3,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { signToken } from "@/lib/jwt";
-import { cookies } from "next/headers";
+import { createAuthSession, generateSecureToken } from "@/lib/auth-service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,6 +25,7 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const safeRole = role === "organizer" ? "organizer" : "attendee";
+    const verificationToken = generateSecureToken(32);
 
     const [user] = await db
       .insert(users)
@@ -34,18 +34,16 @@ export async function POST(req: NextRequest) {
         email: normalizedEmail,
         passwordHash,
         role: safeRole,
+        isEmailVerified: false,
+        emailVerificationToken: verificationToken,
       })
       .returning();
 
-    const token = signToken({ userId: user.id, email: user.email, role: user.role });
-    const cookieStore = await cookies();
-    cookieStore.set("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
+    // Create session, access token, and refresh token
+    await createAuthSession(
+      { id: user.id, email: user.email, role: user.role },
+      req
+    );
 
     return NextResponse.json({
       user: {
@@ -53,7 +51,11 @@ export async function POST(req: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatarUrl: user.avatarUrl,
+        isEmailVerified: user.isEmailVerified,
+        mfaEnabled: user.mfaEnabled,
       },
+      verificationToken, // Provided for instant 1-click verification in demo environments
     });
   } catch (error) {
     console.error("Register error:", error);

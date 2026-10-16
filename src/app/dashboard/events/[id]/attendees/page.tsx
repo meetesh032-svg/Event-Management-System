@@ -4,7 +4,8 @@ import { requireAuth } from "@/lib/auth";
 import { db } from "@/db";
 import { bookings, events, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { ArrowLeft, Mail, Ticket } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import AttendeeListClient from "./AttendeeListClient";
 
 export const dynamic = "force-dynamic";
 
@@ -30,60 +31,43 @@ export default async function AttendeesPage({ params }: { params: Promise<{ id: 
     .where(eq(bookings.eventId, eventId))
     .orderBy(bookings.createdAt);
 
+  const serializedRows = rows.map((r) => ({
+    booking: {
+      id: r.booking.id,
+      reference: r.booking.reference,
+      quantity: r.booking.quantity,
+      totalCents: r.booking.totalCents,
+      status: r.booking.status,
+      seats: r.booking.seats,
+      createdAt: r.booking.createdAt.toISOString(),
+    },
+    attendee: {
+      name: r.attendee.name,
+      email: r.attendee.email,
+      phone: r.attendee.phone,
+    },
+  }));
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
-      <Link
-        href="/dashboard"
-        className="mb-6 inline-flex items-center gap-1 text-sm text-slate-400 hover:text-indigo-300"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to dashboard
-      </Link>
+    <div className="min-h-screen bg-slate-950 px-6 py-12 text-white">
+      <div className="mx-auto max-w-6xl">
+        <Link
+          href="/dashboard"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-indigo-400 transition"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to organizer dashboard
+        </Link>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">{event.title}</h1>
-        <p className="mt-1 text-slate-400">Attendee list & booking references</p>
-      </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">{event.title}</h1>
+          <p className="mt-1 text-slate-400">Manage attendees, filter registrations, and export customer data.</p>
+        </div>
 
-      <div className="glass-strong overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/5 text-slate-300">
-            <tr>
-              <th className="px-6 py-4 font-medium">Name</th>
-              <th className="px-6 py-4 font-medium">Email</th>
-              <th className="px-6 py-4 font-medium">Reference</th>
-              <th className="px-6 py-4 font-medium">Booked</th>
-              <th className="px-6 py-4 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.booking.id} className="border-b border-white/5 last:border-0 hover:bg-white/5">
-                <td className="px-6 py-4 font-medium">{row.attendee.name}</td>
-                <td className="px-6 py-4">
-                  <a
-                    href={`mailto:${row.attendee.email}`}
-                    className="inline-flex items-center gap-1 text-indigo-300 hover:text-indigo-200"
-                  >
-                    <Mail className="h-3.5 w-3.5" /> {row.attendee.email}
-                  </a>
-                </td>
-                <td className="px-6 py-4 font-mono text-xs">{row.booking.reference}</td>
-                <td className="px-6 py-4 text-slate-400">
-                  {new Date(row.booking.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-300">
-                    <Ticket className="h-3 w-3" /> {row.booking.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {rows.length === 0 && (
-          <div className="py-12 text-center text-slate-400">No bookings yet.</div>
-        )}
+        <AttendeeListClient
+          eventId={eventId}
+          eventTitle={event.title}
+          initialRows={serializedRows}
+        />
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ export type TicketPdfData = {
   quantity: number;
   qrBuffer: Buffer;
   price?: string;
+  seats?: string[] | null;
 };
 
 export function generateTicketPDF(data: TicketPdfData): Promise<Buffer> {
@@ -23,7 +24,7 @@ export function generateTicketPDF(data: TicketPdfData): Promise<Buffer> {
     doc.on("error", reject);
 
     // Header
-    doc.fontSize(28).fillColor("#4f46e5").text("Evently E-Ticket", { align: "center" });
+    doc.fontSize(28).fillColor("#F84464").text("Gatherly E-Ticket", { align: "center" });
     doc.moveDown(0.5);
     doc.fontSize(14).fillColor("#64748b").text(`Booking reference: ${data.reference}`, {
       align: "center",
@@ -31,7 +32,7 @@ export function generateTicketPDF(data: TicketPdfData): Promise<Buffer> {
     doc.moveDown(1.5);
 
     // Event card background
-    doc.rect(50, doc.y, 495, 220).fillAndStroke("#f8fafc", "#e2e8f0");
+    doc.rect(50, doc.y, 495, 230).fillAndStroke("#f8fafc", "#e2e8f0");
     const cardTop = doc.y;
 
     doc.fillColor("#0f172a").fontSize(20).text(data.eventTitle, 70, cardTop + 20);
@@ -45,6 +46,11 @@ export function generateTicketPDF(data: TicketPdfData): Promise<Buffer> {
     doc.text(`Date: ${data.eventDate}`);
     doc.moveDown(0.3);
     doc.text(`Quantity: ${data.quantity}`);
+    if (data.seats && data.seats.length > 0) {
+      doc.moveDown(0.3);
+      doc.fillColor("#dc2626").text(`Reserved Seats: ${data.seats.join(", ")}`);
+      doc.fillColor("#0f172a");
+    }
     if (data.price) {
       doc.moveDown(0.3);
       doc.text(`Price: ${data.price}`);

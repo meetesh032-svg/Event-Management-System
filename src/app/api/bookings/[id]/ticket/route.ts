@@ -32,6 +32,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    let parsedSeats: string[] = [];
+    if (row.booking.seats) {
+      try {
+        parsedSeats = JSON.parse(row.booking.seats);
+      } catch {
+        parsedSeats = row.booking.seats.split(",").map((s) => s.trim());
+      }
+    }
+
     const qrBuffer = await generateQRCodeBuffer(row.booking.reference);
     const pdfPrice = row.event.ticketPriceCents === 0 ? "Free" : `Rs. ${(row.event.ticketPriceCents / 100).toLocaleString("en-IN")}`;
     const pdfBuffer = await generateTicketPDF({
@@ -45,6 +54,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       quantity: row.booking.quantity,
       qrBuffer,
       price: pdfPrice,
+      seats: parsedSeats.length > 0 ? parsedSeats : null,
     });
 
     return new Response(new Uint8Array(pdfBuffer), {

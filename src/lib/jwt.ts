@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 export type TokenPayload = {
   userId: number;
   email: string;
-  role: "attendee" | "organizer";
+  role: "attendee" | "organizer" | "admin";
 };
 
 const secret = process.env.JWT_SECRET ?? "";

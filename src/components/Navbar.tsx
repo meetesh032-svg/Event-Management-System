@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
-import { Search, PlusCircle, LayoutDashboard, Ticket } from "lucide-react";
+import { Search, PlusCircle, LayoutDashboard, Ticket, Shield, Heart, User, Building2, Gift } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { NotificationBell } from "./NotificationBell";
+import { MarketingRewardsModal } from "./MarketingRewardsModal";
 
 const navCategories = [
   { label: "Movies", category: "Movies" },
@@ -64,6 +66,7 @@ function NavbarCategoriesFallback() {
 export function Navbar() {
   const { user, setUser, logout } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isRewardsOpen, setIsRewardsOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -113,6 +116,7 @@ export function Navbar() {
           <div className="flex items-center gap-4 ml-6">
             {user ? (
               <div className="flex items-center gap-4">
+                <NotificationBell />
                 <span className="text-sm font-medium">Hi, {user.name.split(" ")[0]}</span>
                 <button
                   onClick={handleLogout}
@@ -141,7 +145,15 @@ export function Navbar() {
           </Suspense>
 
           <div className="flex items-center gap-6 text-xs font-medium">
-            {user?.role === "organizer" && (
+            <Link href="/venues" className="flex items-center gap-1 hover:text-[#F84464] transition">
+              <Building2 className="h-4 w-4" /> Venues
+            </Link>
+            {user?.role === "admin" && (
+              <Link href="/admin" className="flex items-center gap-1 text-rose-600 font-bold hover:text-rose-700 transition">
+                <Shield className="h-4 w-4 text-rose-500" /> Admin Console
+              </Link>
+            )}
+            {(user?.role === "organizer" || user?.role === "admin") && (
               <>
                 <Link href="/dashboard" className="flex items-center gap-1 hover:text-[#F84464] transition">
                   <LayoutDashboard className="h-4 w-4" /> Dashboard
@@ -152,13 +164,36 @@ export function Navbar() {
               </>
             )}
             {user && (
-              <Link href="/bookings" className="flex items-center gap-1 hover:text-[#F84464] transition">
-                <Ticket className="h-4 w-4" /> My Tickets
-              </Link>
+              <>
+                <Link href="/wishlist" className="flex items-center gap-1 hover:text-[#F84464] transition">
+                  <Heart className="h-4 w-4" /> Wishlist
+                </Link>
+                <Link href="/bookings" className="flex items-center gap-1 hover:text-[#F84464] transition">
+                  <Ticket className="h-4 w-4" /> My Tickets
+                </Link>
+                <Link href="/profile" className="flex items-center gap-1 hover:text-[#F84464] transition">
+                  <User className="h-4 w-4" /> Profile
+                </Link>
+                <Link href="/profile/security" className="flex items-center gap-1 hover:text-[#F84464] transition">
+                  <Shield className="h-4 w-4" /> Security
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setIsRewardsOpen(true)}
+                  className="flex items-center gap-1 text-amber-600 font-bold hover:text-amber-700 transition"
+                >
+                  <Gift className="h-4 w-4 text-amber-500" /> Rewards
+                </button>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      <MarketingRewardsModal
+        isOpen={isRewardsOpen}
+        onClose={() => setIsRewardsOpen(false)}
+      />
     </header>
   );
 }

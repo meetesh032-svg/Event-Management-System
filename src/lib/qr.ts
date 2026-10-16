@@ -8,3 +8,12 @@ export async function generateQRCodeBuffer(data: string): Promise<Buffer> {
     margin: 2,
   });
 }
+
+export async function generateQRCodeDataURL(data: string): Promise<string> {
+  return QRCode.toDataURL(data, {
+    errorCorrectionLevel: "H",
+    width: 300,
+    margin: 2,
+  });
+}
+

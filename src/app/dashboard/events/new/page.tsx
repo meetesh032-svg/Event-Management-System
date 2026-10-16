@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -35,7 +35,20 @@ export default function NewEventPage() {
     ticketPrice: "",
     capacity: "",
     imageUrl: "",
+    status: "published",
+    scheduledPublishAt: "",
+    venueId: "",
   });
+  const [venuesList, setVenuesList] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/venues")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.venues) setVenuesList(data.venues);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleChange = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -69,6 +82,8 @@ export default function NewEventPage() {
       imageUrl: uploadedImageUrl,
       ticketPriceCents: Math.round(Number(form.ticketPrice) * 100),
       capacity: Number(form.capacity),
+      venueId: form.venueId ? Number(form.venueId) : null,
+      scheduledPublishAt: form.status === "scheduled" && form.scheduledPublishAt ? form.scheduledPublishAt : null,
     };
 
     const res = await fetch("/api/events", {
@@ -105,6 +120,45 @@ export default function NewEventPage() {
         )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          {/* Status Selection */}
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <label className="mb-2 block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              Publication Status
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: "published", label: "Published", desc: "Live immediately" },
+                { id: "draft", label: "Draft", desc: "Save without publishing" },
+                { id: "scheduled", label: "Scheduled", desc: "Auto-publish on date" },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleChange("status", s.id)}
+                  className={`rounded-lg border p-3 text-left transition ${
+                    form.status === s.id
+                      ? "border-[#F84464] bg-rose-50 text-gray-900"
+                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="text-xs font-bold">{s.label}</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">{s.desc}</div>
+                </button>
+              ))}
+            </div>
+
+            {form.status === "scheduled" && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <label className="mb-1 block text-xs text-gray-700">Scheduled Launch Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={form.scheduledPublishAt}
+                  onChange={(e) => handleChange("scheduledPublishAt", e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#F84464]"
+                />
+              </div>
+            )}
+          </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="mb-1 block text-xs font-medium text-gray-700">Event title</label>
@@ -140,6 +194,27 @@ export default function NewEventPage() {
               </select>
             </div>
             <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">Venue (Optional)</label>
+              <select
+                value={form.venueId}
+                onChange={(e) => {
+                  handleChange("venueId", e.target.value);
+                  const selectedVenue = venuesList.find((v) => v.id.toString() === e.target.value);
+                  if (selectedVenue && !form.location) {
+                    handleChange("location", `${selectedVenue.address}, ${selectedVenue.city}`);
+                  }
+                }}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 outline-none focus:border-[#F84464] focus:ring-1 focus:ring-[#F84464]"
+              >
+                <option value="">-- Custom Location (No Venue) --</option>
+                {venuesList.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} ({v.city})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
               <label className="mb-1 block text-xs font-medium text-gray-700">Location</label>
               <input
                 required

@@ -5,7 +5,10 @@ export type User = {
   id: number;
   name: string;
   email: string;
-  role: "attendee" | "organizer";
+  role: "attendee" | "organizer" | "admin";
+  avatarUrl?: string | null;
+  isEmailVerified?: boolean;
+  mfaEnabled?: boolean;
 };
 
 type AuthState = {
