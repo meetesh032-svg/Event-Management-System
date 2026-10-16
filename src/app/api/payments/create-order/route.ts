@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       guestEmail,
       guestName,
       guestPhone,
+      useWallet = false,
     } = body;
 
     if (!eventId) {
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
       returnUrl,
       cancelUrl,
       isGuest: isGuestCheckout,
+      useWallet,
     });
 
     return NextResponse.json({

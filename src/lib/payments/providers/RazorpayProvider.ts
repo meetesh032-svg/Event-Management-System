@@ -23,7 +23,8 @@ export class RazorpayProvider implements IPaymentProvider {
   constructor() {
     this.keyId = process.env.RAZORPAY_KEY_ID;
     this.keySecret = process.env.RAZORPAY_KEY_SECRET;
-    this.isSandbox = !this.keyId || this.keyId.startsWith("rzp_test_");
+    const env = (process.env.RAZORPAY_ENV || process.env.NODE_ENV || "").toLowerCase();
+    this.isSandbox = env === "sandbox" || env === "test" || !this.keyId || this.keyId.startsWith("rzp_test_");
   }
 
   getUIInfo(): GatewayUIInfo {
@@ -104,45 +105,83 @@ export class RazorpayProvider implements IPaymentProvider {
   }
 
   async verifyPayment(input: VerifyPaymentInput): Promise<VerifyPaymentResult> {
-    if (!this.keySecret) {
-      throw new Error("RAZORPAY_KEY_SECRET is required to verify real signatures.");
+    if (!this.keySecret || !this.keyId) {
+      throw new Error("RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required to verify real transactions.");
     }
 
     const { gatewayPaymentId, gatewayOrderId, gatewaySignature } = input;
 
-    if (!gatewayOrderId || !gatewayPaymentId || !gatewaySignature) {
-      throw new Error("Missing Razorpay payment verification parameters (order_id, payment_id, or signature).");
+    if (!gatewayPaymentId) {
+      throw new Error("Missing Razorpay payment ID for verification.");
     }
 
-    // Verify HMAC-SHA256 signature
-    const generated = crypto
-      .createHmac("sha256", this.keySecret)
-      .update(`${gatewayOrderId}|${gatewayPaymentId}`)
-      .digest("hex");
+    // 1. If signature was provided from SDK callback, verify HMAC-SHA256 signature
+    if (gatewayOrderId && gatewaySignature) {
+      const generated = crypto
+        .createHmac("sha256", this.keySecret)
+        .update(`${gatewayOrderId}|${gatewayPaymentId}`)
+        .digest("hex");
 
-    if (generated !== gatewaySignature) {
+      if (generated !== gatewaySignature) {
+        return {
+          success: false,
+          transactionId: gatewayPaymentId,
+          status: "failed",
+          amountCents: input.amountCents,
+          currency: "INR",
+          gateway: this.id,
+          errorMessage: "Signature verification failed: payment authorization may have been tampered with.",
+        };
+      }
+    }
+
+    // 2. Query official Razorpay Payments API to verify status and amount directly with gateway
+    try {
+      const authHeader = `Basic ${Buffer.from(`${this.keyId}:${this.keySecret}`).toString("base64")}`;
+      const res = await fetch(`https://api.razorpay.com/v1/payments/${gatewayPaymentId}`, {
+        headers: { Authorization: authHeader },
+      });
+
+      const paymentData = await res.json();
+      if (!res.ok) {
+        throw new Error(paymentData.error?.description || "Failed to retrieve payment from Razorpay API");
+      }
+
+      const isCaptured = paymentData.status === "captured";
+      const isAuthorized = paymentData.status === "authorized";
+
+      if (!isCaptured && !isAuthorized) {
+        return {
+          success: false,
+          transactionId: gatewayPaymentId,
+          status: "failed",
+          amountCents: paymentData.amount || input.amountCents,
+          currency: paymentData.currency || "INR",
+          gateway: this.id,
+          errorMessage: `Razorpay payment status is "${paymentData.status}": ${paymentData.error_description || ""}`,
+        };
+      }
+
       return {
-        success: false,
+        success: true,
         transactionId: gatewayPaymentId,
-        status: "failed",
-        amountCents: input.amountCents,
-        currency: "INR",
+        status: "succeeded",
+        amountCents: paymentData.amount || input.amountCents,
+        currency: (paymentData.currency || "INR").toUpperCase(),
         gateway: this.id,
-        errorMessage: "Signature verification failed: payment authorization may have been tampered with.",
+        paymentMethodDetails: {
+          method: paymentData.method || "razorpay_checkout",
+          brand: paymentData.card?.network || paymentData.bank,
+          last4: paymentData.card?.last4,
+          upiId: paymentData.vpa,
+          bankName: paymentData.bank,
+          walletType: paymentData.wallet,
+        },
       };
+    } catch (err) {
+      console.error("Razorpay verification API error:", err);
+      throw new Error(err instanceof Error ? err.message : "Razorpay payment verification failed");
     }
-
-    return {
-      success: true,
-      transactionId: gatewayPaymentId,
-      status: "succeeded",
-      amountCents: input.amountCents,
-      currency: "INR",
-      gateway: this.id,
-      paymentMethodDetails: {
-        method: "razorpay_checkout",
-      },
-    };
   }
 
   async refund(input: RefundPaymentInput): Promise<RefundPaymentResult> {
@@ -200,12 +239,20 @@ export class RazorpayProvider implements IPaymentProvider {
     try {
       const parsed = JSON.parse(input.rawBody);
       const payment = parsed.payload?.payment?.entity;
+      const refund = parsed.payload?.refund?.entity;
+
+      let eventType: WebhookEventResult["eventType"] = "unknown";
+      if (parsed.event === "payment.captured") eventType = "payment.succeeded";
+      else if (parsed.event === "payment.failed") eventType = "payment.failed";
+      else if (parsed.event === "refund.processed") eventType = "refund.succeeded";
+      else if (parsed.event?.includes("dispute")) eventType = "dispute.created";
+
       return {
         isValid: true,
-        eventType: parsed.event === "payment.captured" ? "payment.succeeded" : "unknown",
-        orderId: payment?.notes?.orderId,
-        transactionId: payment?.id,
-        amountCents: payment?.amount,
+        eventType,
+        orderId: payment?.notes?.orderId || payment?.order_id,
+        transactionId: payment?.id || refund?.id,
+        amountCents: payment?.amount || refund?.amount,
         metadata: payment?.notes || {},
       };
     } catch (err) {

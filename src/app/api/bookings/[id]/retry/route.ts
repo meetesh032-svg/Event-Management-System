@@ -45,12 +45,11 @@ export async function POST(
     }
 
     const origin = process.env.NEXT_PUBLIC_APP_URL ?? `http://${req.headers.get("host")}`;
-    const fakeSessionId = `fake_sess_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
     const seatsParam = booking.seats ? `&seats=${encodeURIComponent(booking.seats)}` : "";
     const couponParam = booking.couponCode ? `&coupon=${encodeURIComponent(booking.couponCode)}&discount=${booking.discountCents}` : "";
 
-    const retryCheckoutUrl = `${origin}/checkout/fake?session_id=${fakeSessionId}&eventId=${event.id}&userId=${user.id}&amount=${booking.totalCents}&quantity=${booking.quantity}&title=${encodeURIComponent(event.title)}${seatsParam}${couponParam}`;
+    // Redirect to real official checkout
+    const retryCheckoutUrl = `${origin}/checkout?eventId=${event.id}&userId=${user.id}&amount=${booking.totalCents}&quantity=${booking.quantity}&title=${encodeURIComponent(event.title)}${seatsParam}${couponParam}`;
 
     return NextResponse.json({
       success: true,

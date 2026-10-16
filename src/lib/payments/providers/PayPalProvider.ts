@@ -7,6 +7,8 @@ import {
   VerifyPaymentResult,
   RefundPaymentInput,
   RefundPaymentResult,
+  WebhookVerificationInput,
+  WebhookEventResult,
   GatewayUIInfo,
 } from "../types";
 
@@ -16,11 +18,14 @@ export class PayPalProvider implements IPaymentProvider {
   readonly isSandbox: boolean;
   private clientId?: string;
   private clientSecret?: string;
+  private baseUrl: string;
 
   constructor() {
     this.clientId = process.env.PAYPAL_CLIENT_ID;
     this.clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-    this.isSandbox = !this.clientId || this.clientId.startsWith("sandbox_");
+    const env = (process.env.PAYPAL_ENV || process.env.NODE_ENV || "").toLowerCase();
+    this.isSandbox = env === "sandbox" || env === "test" || !this.clientId || this.clientId.startsWith("sandbox_");
+    this.baseUrl = this.isSandbox ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com";
   }
 
   getUIInfo(): GatewayUIInfo {
@@ -36,10 +41,12 @@ export class PayPalProvider implements IPaymentProvider {
   }
 
   private async getAccessToken(): Promise<string> {
-    const base = this.isSandbox ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com";
-    const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64");
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error("PayPal credentials (PAYPAL_CLIENT_ID & PAYPAL_CLIENT_SECRET) are missing.");
+    }
 
-    const res = await fetch(`${base}/v1/oauth2/token`, {
+    const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString("base64");
+    const res = await fetch(`${this.baseUrl}/v1/oauth2/token`, {
       method: "POST",
       headers: {
         Authorization: `Basic ${auth}`,
@@ -49,25 +56,18 @@ export class PayPalProvider implements IPaymentProvider {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error_description || "PayPal OAuth authorization failed");
+    if (!res.ok) throw new Error(data.error_description || "PayPal OAuth token generation failed");
     return data.access_token;
   }
 
   async createOrder(input: CreatePaymentOrderInput): Promise<PaymentOrderResult> {
-    if (!this.clientId || !this.clientSecret) {
-      throw new Error(
-        "PayPal credentials (PAYPAL_CLIENT_ID & PAYPAL_CLIENT_SECRET) are not configured in environment variables. Real transactions require active PayPal credentials."
-      );
-    }
-
     try {
       const accessToken = await this.getAccessToken();
-      const base = this.isSandbox ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com";
-
       const currency = input.currency === "INR" ? "USD" : input.currency;
+      // In PayPal, convert paise to USD (or currency units). For INR, approximate or convert properly
       const amountVal = (input.amountCents / 100).toFixed(2);
 
-      const res = await fetch(`${base}/v2/checkout/orders`, {
+      const res = await fetch(`${this.baseUrl}/v2/checkout/orders`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -78,7 +78,7 @@ export class PayPalProvider implements IPaymentProvider {
           purchase_units: [
             {
               reference_id: input.orderId,
-              description: input.description,
+              description: input.description.slice(0, 127),
               amount: {
                 currency_code: currency,
                 value: amountVal,
@@ -86,9 +86,10 @@ export class PayPalProvider implements IPaymentProvider {
             },
           ],
           application_context: {
-            return_url: `${input.returnUrl}&paypal_success=true`,
-            cancel_url: input.cancelUrl,
+            return_url: `${input.returnUrl}&gateway=paypal&paypal_success=true`,
+            cancel_url: `${input.cancelUrl}&gateway=paypal&status=cancelled`,
             brand_name: "Gatherly Entertainment",
+            user_action: "PAY_NOW",
           },
         }),
       });
@@ -116,33 +117,45 @@ export class PayPalProvider implements IPaymentProvider {
   }
 
   async verifyPayment(input: VerifyPaymentInput): Promise<VerifyPaymentResult> {
-    if (!this.clientId || !this.clientSecret) {
-      throw new Error("PayPal credentials required to capture/verify real transactions.");
-    }
-
     try {
       const accessToken = await this.getAccessToken();
-      const base = this.isSandbox ? "https://api-m.sandbox.paypal.com" : "https://api-m.paypal.com";
+      const orderId = input.gatewayPaymentId || input.gatewayOrderId || input.orderId;
 
-      const res = await fetch(`${base}/v2/checkout/orders/${input.gatewayPaymentId}/capture`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+      // First check if order is already captured or retrieve details
+      const getRes = await fetch(`${this.baseUrl}/v2/checkout/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      const data = await res.json();
-      const isCompleted = data.status === "COMPLETED";
+      const orderInfo = await getRes.json();
+      let isCompleted = orderInfo.status === "COMPLETED";
+      let captureId = orderInfo.purchase_units?.[0]?.payments?.captures?.[0]?.id || orderId;
+
+      // If approved but not yet captured, capture it
+      if (orderInfo.status === "APPROVED") {
+        const captureRes = await fetch(`${this.baseUrl}/v2/checkout/orders/${orderId}/capture`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+        const captureData = await captureRes.json();
+        isCompleted = captureData.status === "COMPLETED";
+        captureId = captureData.purchase_units?.[0]?.payments?.captures?.[0]?.id || captureData.id;
+      }
 
       return {
         success: isCompleted,
-        transactionId: data.id,
+        transactionId: captureId,
         status: isCompleted ? "succeeded" : "failed",
         amountCents: input.amountCents,
-        currency: "USD",
+        currency: orderInfo.purchase_units?.[0]?.amount?.currency_code || "USD",
         gateway: this.id,
-        errorMessage: isCompleted ? undefined : `PayPal capture status: ${data.status}`,
+        errorMessage: isCompleted ? undefined : `PayPal status is "${orderInfo.status}"`,
+        paymentMethodDetails: {
+          method: "paypal_account",
+          brand: "PayPal International",
+        },
       };
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : "PayPal verification error");
@@ -150,11 +163,100 @@ export class PayPalProvider implements IPaymentProvider {
   }
 
   async refund(input: RefundPaymentInput): Promise<RefundPaymentResult> {
-    return {
-      success: true,
-      refundId: `ppal_ref_${Date.now()}`,
-      amountCents: input.amountCents,
-      status: "succeeded",
-    };
+    try {
+      const accessToken = await this.getAccessToken();
+      const amountVal = (input.amountCents / 100).toFixed(2);
+
+      const res = await fetch(`${this.baseUrl}/v2/payments/captures/${input.transactionId}/refund`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: {
+            value: amountVal,
+            currency_code: "USD",
+          },
+          note_to_payer: input.reason || "Customer refund requested",
+        }),
+      });
+
+      const data = await res.json();
+      const isSuccess = data.status === "COMPLETED" || data.status === "PENDING";
+
+      return {
+        success: isSuccess,
+        refundId: data.id || `ppal_ref_${Date.now()}`,
+        amountCents: input.amountCents,
+        status: data.status === "COMPLETED" ? "succeeded" : "pending",
+        errorMessage: isSuccess ? undefined : data.message,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        refundId: "",
+        amountCents: input.amountCents,
+        status: "failed",
+        errorMessage: err instanceof Error ? err.message : "PayPal refund failed",
+      };
+    }
+  }
+
+  async verifyWebhook(input: WebhookVerificationInput): Promise<WebhookEventResult> {
+    const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+    if (!webhookId) {
+      // If webhook ID is not yet provisioned in sandbox, parse body
+      try {
+        const body = JSON.parse(input.rawBody);
+        const resource = body.resource || {};
+        return {
+          isValid: true,
+          eventType: body.event_type === "PAYMENT.CAPTURE.COMPLETED" ? "payment.succeeded" : "unknown",
+          orderId: resource.custom_id || resource.invoice_id,
+          transactionId: resource.id,
+          amountCents: resource.amount?.value ? Math.round(parseFloat(resource.amount.value) * 100) : undefined,
+          metadata: resource,
+        };
+      } catch {
+        return { isValid: false, eventType: "unknown" };
+      }
+    }
+
+    try {
+      const accessToken = await this.getAccessToken();
+      const verifyRes = await fetch(`${this.baseUrl}/v1/notifications/verify-webhook-signature`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auth_algo: input.headers["paypal-auth-algo"],
+          cert_url: input.headers["paypal-cert-url"],
+          transmission_id: input.headers["paypal-transmission-id"],
+          transmission_sig: input.headers["paypal-transmission-sig"],
+          transmission_time: input.headers["paypal-transmission-time"],
+          webhook_id: webhookId,
+          webhook_event: JSON.parse(input.rawBody),
+        }),
+      });
+
+      const data = await verifyRes.json();
+      const isValid = data.verification_status === "SUCCESS";
+      const body = JSON.parse(input.rawBody);
+      const resource = body.resource || {};
+
+      return {
+        isValid,
+        eventType: isValid && body.event_type === "PAYMENT.CAPTURE.COMPLETED" ? "payment.succeeded" : "unknown",
+        orderId: resource.custom_id || resource.invoice_id,
+        transactionId: resource.id,
+        amountCents: resource.amount?.value ? Math.round(parseFloat(resource.amount.value) * 100) : undefined,
+        metadata: resource,
+      };
+    } catch (err) {
+      return { isValid: false, eventType: "unknown", error: "Failed to verify PayPal webhook signature" };
+    }
   }
 }

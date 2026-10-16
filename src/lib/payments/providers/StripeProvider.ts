@@ -45,9 +45,9 @@ export class StripeProvider implements IPaymentProvider {
     }
 
     try {
-      // In Stripe test accounts where USD is default, specify USD or account currency
-      const currencyCode = "usd";
-      const unitAmount = Math.max(50, Math.round(input.amountCents)); // Minimum 50 cents
+      const currencyCode = (input.currency || "inr").toLowerCase();
+      // Stripe requires amount in smallest currency unit (paise/cents)
+      const unitAmount = Math.max(50, Math.round(input.amountCents));
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
@@ -65,8 +65,8 @@ export class StripeProvider implements IPaymentProvider {
         ],
         mode: "payment",
         customer_email: input.customer.email,
-        success_url: `${input.returnUrl}&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: input.cancelUrl,
+        success_url: `${input.returnUrl}&session_id={CHECKOUT_SESSION_ID}&gateway=stripe`,
+        cancel_url: `${input.cancelUrl}&gateway=stripe&status=cancelled`,
         metadata: {
           orderId: input.orderId,
           userId: input.customer.userId?.toString() || "",
@@ -106,12 +106,13 @@ export class StripeProvider implements IPaymentProvider {
       throw new Error("STRIPE_SECRET_KEY is required to verify real Stripe transactions.");
     }
 
-    if (!input.gatewayPaymentId) {
+    const sessionId = input.gatewayPaymentId || input.gatewayOrderId;
+    if (!sessionId) {
       throw new Error("Missing Stripe Checkout session ID for verification.");
     }
 
     try {
-      const session = await stripe.checkout.sessions.retrieve(input.gatewayPaymentId);
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
 
       if (session.payment_status !== "paid") {
         return {
@@ -119,7 +120,7 @@ export class StripeProvider implements IPaymentProvider {
           transactionId: session.id,
           status: "failed",
           amountCents: session.amount_total || input.amountCents,
-          currency: (session.currency || "USD").toUpperCase(),
+          currency: (session.currency || "INR").toUpperCase(),
           gateway: this.id,
           errorMessage: `Stripe payment incomplete: status is "${session.payment_status}"`,
         };
@@ -130,7 +131,7 @@ export class StripeProvider implements IPaymentProvider {
         transactionId: (session.payment_intent as string) || session.id,
         status: "succeeded",
         amountCents: session.amount_total || input.amountCents,
-        currency: (session.currency || "USD").toUpperCase(),
+        currency: (session.currency || "INR").toUpperCase(),
         gateway: this.id,
         paymentMethodDetails: {
           method: "stripe_card",
@@ -153,7 +154,7 @@ export class StripeProvider implements IPaymentProvider {
     try {
       const refund = await stripe.refunds.create({
         payment_intent: input.transactionId,
-        amount: input.amountCents,
+        amount: Math.round(input.amountCents),
         reason: "requested_by_customer",
       });
 
@@ -193,6 +194,24 @@ export class StripeProvider implements IPaymentProvider {
           transactionId: (session.payment_intent as string) || session.id,
           amountCents: session.amount_total || 0,
           metadata: session.metadata || {},
+        };
+      } else if (event.type === "payment_intent.payment_failed") {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        return {
+          isValid: true,
+          eventType: "payment.failed",
+          transactionId: intent.id,
+          amountCents: intent.amount,
+          metadata: intent.metadata || {},
+        };
+      } else if (event.type === "charge.refunded") {
+        const charge = event.data.object as Stripe.Charge;
+        return {
+          isValid: true,
+          eventType: "refund.succeeded",
+          transactionId: charge.id,
+          amountCents: charge.amount_refunded,
+          metadata: charge.metadata || {},
         };
       }
 

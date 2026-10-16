@@ -7,7 +7,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test test/system-suite.test.mjs",
+    "test": "node --test test/*.test.mjs",
     "db:push": "drizzle-kit push",
     "db:seed": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs src/db/seed.ts"
   },

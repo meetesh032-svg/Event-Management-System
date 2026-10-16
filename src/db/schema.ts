@@ -397,6 +397,102 @@ export const memberships = pgTable("memberships", {
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  orderId: varchar("order_id", { length: 64 }).notNull().unique(),
+  eventId: integer("event_id").references(() => events.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  gateway: varchar("gateway", { length: 50 }).notNull(),
+  gatewayOrderId: varchar("gateway_order_id", { length: 255 }),
+  quantity: integer("quantity").notNull().default(1),
+  seats: text("seats"),
+  subtotalCents: integer("subtotal_cents").notNull(),
+  platformFeeCents: integer("platform_fee_cents").notNull().default(500),
+  convenienceFeeCents: integer("convenience_fee_cents").notNull().default(2500),
+  taxesCents: integer("taxes_cents").notNull().default(0),
+  discountCents: integer("discount_cents").notNull().default(0),
+  walletAmountCents: integer("wallet_amount_cents").notNull().default(0),
+  totalAmountCents: integer("total_amount_cents").notNull(),
+  currency: varchar("currency", { length: 10 }).notNull().default("INR"),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // 'pending' | 'completed' | 'failed' | 'expired' | 'cancelled'
+  couponCode: varchar("coupon_code", { length: 50 }),
+  customerDetails: text("customer_details"),
+  clientSecret: text("client_secret"),
+  checkoutUrl: text("checkout_url"),
+  gatewayPayload: text("gateway_payload"),
+  expiresAt: timestamp("expires_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  orderId: varchar("order_id", { length: 64 }).references(() => orders.orderId, { onDelete: "set null" }),
+  bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  gateway: varchar("gateway", { length: 50 }).notNull(),
+  gatewayPaymentId: varchar("gateway_payment_id", { length: 255 }).notNull(),
+  gatewayOrderId: varchar("gateway_order_id", { length: 255 }),
+  gatewaySignature: text("gateway_signature"),
+  amountCents: integer("amount_cents").notNull(),
+  currency: varchar("currency", { length: 10 }).notNull().default("INR"),
+  status: varchar("status", { length: 50 }).notNull().default("initiated"), // 'initiated' | 'succeeded' | 'failed' | 'refunded' | 'expired' | 'cancelled'
+  paymentMethod: varchar("payment_method", { length: 50 }),
+  paymentMethodDetails: text("payment_method_details"),
+  errorMessage: text("error_message"),
+  rawPayload: text("raw_payload"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  transactionReference: varchar("transaction_reference", { length: 64 }).notNull().unique(),
+  orderId: varchar("order_id", { length: 64 }),
+  paymentId: integer("payment_id").references(() => payments.id, { onDelete: "set null" }),
+  bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  gateway: varchar("gateway", { length: 50 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull().default("charge"), // 'charge' | 'refund' | 'chargeback' | 'dispute'
+  amountCents: integer("amount_cents").notNull(),
+  currency: varchar("currency", { length: 10 }).notNull().default("INR"),
+  status: varchar("status", { length: 50 }).notNull().default("succeeded"),
+  gatewayResponse: text("gateway_response"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: varchar("invoice_number", { length: 64 }).notNull().unique(),
+  bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  eventId: integer("event_id").references(() => events.id, { onDelete: "cascade" }).notNull(),
+  subtotalCents: integer("subtotal_cents").notNull(),
+  platformFeeCents: integer("platform_fee_cents").notNull().default(500),
+  convenienceFeeCents: integer("convenience_fee_cents").notNull().default(2500),
+  taxesCents: integer("taxes_cents").notNull().default(0),
+  discountCents: integer("discount_cents").notNull().default(0),
+  totalCents: integer("total_cents").notNull(),
+  currency: varchar("currency", { length: 10 }).notNull().default("INR"),
+  status: varchar("status", { length: 20 }).notNull().default("paid"), // 'paid' | 'void' | 'refunded'
+  invoicePdfUrl: varchar("invoice_pdf_url", { length: 500 }),
+  issuedAt: timestamp("issued_at", { mode: "date" }).defaultNow().notNull(),
+});
+
+export const receipts = pgTable("receipts", {
+  id: serial("id").primaryKey(),
+  receiptNumber: varchar("receipt_number", { length: 64 }).notNull().unique(),
+  bookingId: integer("booking_id").references(() => bookings.id, { onDelete: "cascade" }).notNull(),
+  orderId: varchar("order_id", { length: 64 }),
+  transactionId: varchar("transaction_id", { length: 255 }).notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  currency: varchar("currency", { length: 10 }).notNull().default("INR"),
+  paymentMethod: varchar("payment_method", { length: 50 }).notNull(),
+  gateway: varchar("gateway", { length: 50 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("completed"),
+  issuedAt: timestamp("issued_at", { mode: "date" }).defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Event = typeof events.$inferSelect;
@@ -451,3 +547,14 @@ export type WebhookLog = typeof webhookLogs.$inferSelect;
 export type NewWebhookLog = typeof webhookLogs.$inferInsert;
 export type Refund = typeof refunds.$inferSelect;
 export type NewRefund = typeof refunds.$inferInsert;
+export type Order = typeof orders.$inferSelect;
+export type NewOrder = typeof orders.$inferInsert;
+export type Payment = typeof payments.$inferSelect;
+export type NewPayment = typeof payments.$inferInsert;
+export type Transaction = typeof transactions.$inferSelect;
+export type NewTransaction = typeof transactions.$inferInsert;
+export type Invoice = typeof invoices.$inferSelect;
+export type NewInvoice = typeof invoices.$inferInsert;
+export type Receipt = typeof receipts.$inferSelect;
+export type NewReceipt = typeof receipts.$inferInsert;
+

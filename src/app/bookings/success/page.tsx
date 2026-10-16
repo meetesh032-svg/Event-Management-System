@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Sparkles,
   MapPin,
+  Receipt,
 } from "lucide-react";
 import { formatRupees } from "@/lib/format";
 import { Button, Badge, Card } from "@/components/ui";
@@ -47,6 +48,12 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const bookingRef = searchParams.get("booking_ref");
+  const gateway = searchParams.get("gateway");
+  const cfOrderId = searchParams.get("cf_order_id");
+  const transactionId = searchParams.get("transactionId");
+  const token = searchParams.get("token");
+  const txnid = searchParams.get("txnid");
+  const encResp = searchParams.get("encResp");
 
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,42 +61,33 @@ function SuccessContent() {
   const [copiedShare, setCopiedShare] = useState(false);
 
   useEffect(() => {
-    if (!sessionId && !bookingRef) {
-      setError("Missing booking session identifier.");
+    const identifier = bookingRef || sessionId || cfOrderId || transactionId || token || txnid;
+    if (!identifier) {
+      setError("Missing payment confirmation or booking session identifier.");
       setLoading(false);
       return;
     }
 
-    let url = `/api/checkout/confirm?session_id=${sessionId || bookingRef}`;
-    const fakeEventId = searchParams.get("fake_event_id");
-    const fakeUserId = searchParams.get("fake_user_id");
-    const fakeSeats = searchParams.get("fake_seats");
-    const fakeQuantity = searchParams.get("fake_quantity");
-    const fakeCoupon = searchParams.get("fake_coupon");
-    const fakeDiscount = searchParams.get("fake_discount");
-    const isGuest = searchParams.get("is_guest");
-    const guestEmail = searchParams.get("guest_email");
-    const guestName = searchParams.get("guest_name");
-    const fakeTotal = searchParams.get("fake_total");
-    const fakeGateway = searchParams.get("fake_gateway");
+    // Build query for verification & confirmation
+    const params = new URLSearchParams();
+    if (sessionId) params.set("session_id", sessionId);
+    if (bookingRef) params.set("booking_ref", bookingRef);
+    if (gateway) params.set("gateway", gateway);
+    if (cfOrderId) params.set("cf_order_id", cfOrderId);
+    if (transactionId) params.set("transactionId", transactionId);
+    if (token) params.set("token", token);
+    if (txnid) params.set("txnid", txnid);
+    if (encResp) params.set("encResp", encResp);
 
-    if (fakeEventId) url += `&fake_event_id=${fakeEventId}`;
-    if (fakeUserId) url += `&fake_user_id=${fakeUserId}`;
-    if (fakeSeats) url += `&fake_seats=${encodeURIComponent(fakeSeats)}`;
-    if (fakeQuantity) url += `&fake_quantity=${fakeQuantity}`;
-    if (fakeCoupon) url += `&fake_coupon=${encodeURIComponent(fakeCoupon)}`;
-    if (fakeDiscount) url += `&fake_discount=${fakeDiscount}`;
-    if (isGuest) url += `&is_guest=true&guest_email=${encodeURIComponent(guestEmail || "")}&guest_name=${encodeURIComponent(guestName || "")}`;
-    if (fakeTotal) url += `&fake_total=${fakeTotal}`;
-    if (fakeGateway) url += `&fake_gateway=${fakeGateway}`;
+    const url = `/api/checkout/confirm?${params.toString()}`;
 
     fetch(url, { credentials: "include" })
       .then(async (res) => {
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Confirmation failed");
+        if (!res.ok) throw new Error(data.error || "Payment verification failed");
         setBooking(data.booking);
 
-        // Fetch event details for rich preview
+        // Fetch event details for preview card
         if (data.booking?.eventId) {
           fetch(`/api/events/${data.booking.eventId}`)
             .then((r) => r.json())
@@ -103,7 +101,7 @@ function SuccessContent() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [sessionId, bookingRef]);
+  }, [sessionId, bookingRef, gateway, cfOrderId, transactionId, token, txnid, encResp]);
 
   let parsedSeats: string[] = [];
   if (booking?.seats) {
@@ -144,15 +142,15 @@ function SuccessContent() {
       {loading ? (
         <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-gray-200 shadow-sm">
           <Loader2 className="h-10 w-10 animate-spin text-[#F84464] mb-4" />
-          <h3 className="text-lg font-bold text-gray-900">Securing Your Reservation</h3>
-          <p className="mt-1 text-xs text-gray-500">Generating digital QR tickets & tax invoice...</p>
+          <h3 className="text-lg font-bold text-gray-900">Verifying Official Payment</h3>
+          <p className="mt-1 text-xs text-gray-500">Generating digital QR tickets, tax invoice & payment receipt...</p>
         </div>
       ) : error ? (
         <div className="p-8 bg-white rounded-3xl border border-gray-200 shadow-sm text-center">
           <div className="h-12 w-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
             <CheckCircle className="h-6 w-6 text-rose-600" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900">Unable to retrieve confirmation</h3>
+          <h3 className="text-lg font-bold text-gray-900">Payment Verification Issue</h3>
           <p className="mt-1 text-xs text-gray-500">{error}</p>
           <div className="mt-6 flex justify-center gap-3">
             <Link href="/bookings">
@@ -171,14 +169,14 @@ function SuccessContent() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 shadow-inner mb-4">
               <CheckCircle className="h-10 w-10" />
             </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 uppercase tracking-wider">
-              Payment Confirmed
+            <span className="rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-700 uppercase tracking-wider inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" /> Official Payment Verified
             </span>
             <h1 className="mt-3 text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
               You&apos;re All Set for the Show!
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-gray-500">
-              Your official digital ticket pass and tax invoice have been generated.
+              Your official digital ticket pass, tax invoice, and payment receipt have been generated.
             </p>
           </div>
 
@@ -200,12 +198,12 @@ function SuccessContent() {
                   <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                   {booking.event.location}
                 </p>
-                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                  <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                <p className="text-xs text-gray-600 font-semibold mt-1">
                   {new Date(booking.event.startsAt).toLocaleDateString("en-IN", {
                     weekday: "short",
-                    month: "short",
                     day: "numeric",
+                    month: "short",
+                    year: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
@@ -214,41 +212,39 @@ function SuccessContent() {
             </div>
           )}
 
-          {/* Booking Metadata Table */}
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 space-y-3.5 text-xs sm:text-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <span className="text-gray-500 font-medium">Booking ID</span>
-              <span className="font-mono font-bold text-gray-900 text-sm">{booking.reference}</span>
+          {/* Booking Summary Box */}
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
+            <div className="flex justify-between items-center text-xs pb-3 border-b border-gray-100">
+              <span className="text-gray-500 font-medium">Booking Reference</span>
+              <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2.5 py-0.5 rounded-lg text-xs">
+                {booking.reference}
+              </span>
             </div>
 
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <span className="text-gray-500 font-medium">Tickets Quantity</span>
-              <span className="font-bold text-gray-900">{booking.quantity || 1} Ticket(s)</span>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-500 font-medium">Tickets / Seats</span>
+              <span className="font-bold text-gray-900">
+                {booking.quantity || parsedSeats.length || 1} Ticket(s)
+                {parsedSeats.length > 0 && ` (${parsedSeats.join(", ")})`}
+              </span>
             </div>
 
-            {parsedSeats.length > 0 && (
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                <span className="text-gray-500 font-medium">Reserved Seats</span>
-                <div className="flex flex-wrap gap-1 justify-end">
-                  {parsedSeats.map((seat) => (
-                    <span
-                      key={seat}
-                      className="rounded-md bg-[#FFF0F3] border border-[#F84464]/20 px-2 py-0.5 text-xs font-bold text-[#F84464]"
-                    >
-                      {seat}
-                    </span>
-                  ))}
-                </div>
+            {booking.discountCents ? (
+              <div className="flex justify-between items-center text-xs text-emerald-600 font-medium">
+                <span>Discount ({booking.couponCode || "Promo"})</span>
+                <span>- {formatRupees(booking.discountCents)}</span>
               </div>
-            )}
+            ) : null}
 
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-gray-500 font-medium">Total Paid</span>
-              <span className="text-lg font-black text-gray-900">{formatRupees(booking.totalCents)}</span>
+            <div className="flex justify-between items-center text-sm pt-3 border-t border-gray-100">
+              <span className="font-bold text-gray-900">Total Paid (Incl. Taxes)</span>
+              <span className="font-extrabold text-emerald-600 text-base">
+                {formatRupees(booking.totalCents)}
+              </span>
             </div>
           </div>
 
-          {/* Primary Action Buttons */}
+          {/* Primary Action Buttons: QR Pass + e-Ticket PDF + Tax Invoice + Receipt */}
           <div className="mt-8 space-y-3">
             <Link
               href={`/tickets/${booking.reference}`}
@@ -257,20 +253,27 @@ function SuccessContent() {
               <QrCode className="h-4 w-4" /> Open Fullscreen QR Ticket Pass
             </Link>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <a
                 href={`/api/bookings/${booking.id}/ticket`}
                 download
-                className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 py-3 text-xs font-bold text-gray-700 shadow-sm transition"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 py-2.5 text-xs font-bold text-gray-700 shadow-sm transition"
               >
-                <Download className="h-4 w-4 text-gray-500" /> e-Ticket PDF
+                <Download className="h-3.5 w-3.5 text-gray-500" /> e-Ticket PDF
               </a>
               <a
                 href={`/api/bookings/${booking.id}/invoice`}
                 download
-                className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 py-3 text-xs font-bold text-gray-700 shadow-sm transition"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 py-2.5 text-xs font-bold text-gray-700 shadow-sm transition"
               >
-                <FileText className="h-4 w-4 text-gray-500" /> Tax Invoice PDF
+                <FileText className="h-3.5 w-3.5 text-gray-500" /> Tax Invoice
+              </a>
+              <a
+                href={`/api/bookings/${booking.id}/receipt`}
+                download
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 py-2.5 text-xs font-bold text-gray-700 shadow-sm transition"
+              >
+                <Receipt className="h-3.5 w-3.5 text-gray-500" /> Receipt PDF
               </a>
             </div>
 
@@ -297,17 +300,8 @@ function SuccessContent() {
           <div className="mt-6 pt-5 border-t border-gray-100 text-center">
             <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500">
               <Mail className="h-3.5 w-3.5 text-emerald-600" />
-              <span>Confirmation email sent with PDF passes and tax invoice.</span>
+              <span>Confirmation email sent with PDF passes, tax invoice, and payment receipt.</span>
             </p>
-            <div className="mt-4 flex items-center justify-center gap-6 text-xs font-semibold">
-              <Link href="/bookings" className="text-[#F84464] hover:underline">
-                View All My Bookings
-              </Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/events" className="text-gray-600 hover:text-gray-900">
-                Explore More Shows
-              </Link>
-            </div>
           </div>
         </motion.div>
       ) : null}

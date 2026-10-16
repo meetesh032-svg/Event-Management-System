@@ -11,36 +11,24 @@ export async function POST(req: NextRequest) {
       gatewayPaymentId,
       gatewayOrderId,
       gatewaySignature,
-      amountCents,
-      metadata,
       rawPayload,
     } = body;
 
-    if (!orderId || !metadata?.eventId || !metadata?.userId) {
-      return NextResponse.json({ error: "Missing required order metadata" }, { status: 400 });
+    if (!orderId && !gatewayOrderId && !gatewayPaymentId) {
+      return NextResponse.json({ error: "Missing required order identifier" }, { status: 400 });
     }
+
+    const effectiveOrderId = orderId || gatewayOrderId || gatewayPaymentId;
 
     const result = await paymentService.verifyAndCompletePayment({
       gatewayId: gatewayId as PaymentGatewayId,
       verifyInput: {
-        orderId,
-        gatewayPaymentId: gatewayPaymentId || orderId,
-        gatewayOrderId,
-        gatewaySignature,
-        amountCents: Number(amountCents) || metadata.totalCents,
+        orderId: effectiveOrderId,
+        gatewayPaymentId: gatewayPaymentId || effectiveOrderId,
+        gatewayOrderId: gatewayOrderId || undefined,
+        gatewaySignature: gatewaySignature || undefined,
+        amountCents: 0, // Backend retrieves and validates strict order amount from database
         rawPayload,
-      },
-      metadata: {
-        eventId: Number(metadata.eventId),
-        userId: Number(metadata.userId),
-        quantity: Number(metadata.quantity) || 1,
-        seats: metadata.seats || [],
-        couponCode: metadata.couponCode || null,
-        discountCents: Number(metadata.discountCents) || 0,
-        totalCents: Number(metadata.totalCents),
-        isGuest: metadata.isGuest || false,
-        guestEmail: metadata.guestEmail || null,
-        guestName: metadata.guestName || null,
       },
     });
 
